@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,6 +43,13 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
   }
 
   Future<void> _save() async {
+    final rawTempo = _tempoController.text.trim();
+    final tempo = rawTempo.isEmpty ? null : int.tryParse(rawTempo);
+    if (rawTempo.isNotEmpty && tempo == null) {
+      setState(() => _errorMessage = 'El tempo debe ser un número (BPM).');
+      return;
+    }
+
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -52,7 +60,7 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
       title: _titleController.text.trim(),
       artist: _artistController.text.trim().isEmpty ? null : _artistController.text.trim(),
       originalKey: _keyController.text.trim(),
-      tempo: int.tryParse(_tempoController.text.trim()),
+      tempo: tempo,
       timeSignature:
           _timeSignatureController.text.trim().isEmpty ? null : _timeSignatureController.text.trim(),
       content: _contentController.text,
@@ -69,11 +77,28 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
       }
       await ref.read(songListProvider.notifier).refresh();
       if (mounted) Navigator.of(context).pop();
-    } catch (e) {
-      setState(() => _errorMessage = 'No se pudo guardar la canción: $e');
+    } on DioException catch (e) {
+      setState(() => _errorMessage = _messageFor(e));
+    } catch (_) {
+      setState(() => _errorMessage = 'No se pudo guardar la canción.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  /// Extracts a clean, user-facing message from a failed save request.
+  /// Laravel returns validation errors as `{"errors": {"field": ["msg"]}}`
+  /// on a 422 — surface the first one instead of the raw exception text.
+  String _messageFor(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['errors'] is Map) {
+      final errors = data['errors'] as Map;
+      final firstFieldErrors = errors.values.first;
+      if (firstFieldErrors is List && firstFieldErrors.isNotEmpty) {
+        return firstFieldErrors.first.toString();
+      }
+    }
+    return 'No se pudo guardar la canción. Verificá tu conexión e intentá de nuevo.';
   }
 
   @override
