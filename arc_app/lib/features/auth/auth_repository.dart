@@ -42,6 +42,21 @@ class AuthRepository {
         throw AuthException('El email o la contraseña no son correctos.');
       }
       throw AuthException('No se pudo conectar con el servidor.');
+    } on TypeError {
+      throw AuthException('Respuesta inesperada del servidor.');
+    }
+  }
+
+  /// Validates the stored token against the backend and returns the current
+  /// user, or throws [AuthException] if the token is missing/invalid/expired.
+  Future<AuthUser> currentUser() async {
+    try {
+      final response = await _apiClient.dio.get('/me');
+      return AuthUser.fromJson(response.data['user'] as Map<String, dynamic>);
+    } on DioException {
+      throw AuthException('La sesión no es válida.');
+    } on TypeError {
+      throw AuthException('Respuesta inesperada del servidor.');
     }
   }
 

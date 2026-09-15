@@ -15,10 +15,21 @@ class ArcApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
+    final Widget home;
+    if (authState.isLoggedIn) {
+      home = const _PlaceholderHome();
+    } else if (authState.isLoading) {
+      // Still restoring a possibly-stored session — avoid flashing the
+      // login screen before we know whether a valid token exists.
+      home = const Scaffold(body: Center(child: CircularProgressIndicator()));
+    } else {
+      home = const LoginScreen();
+    }
+
     return MaterialApp(
       title: 'Arc',
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      home: authState.isLoggedIn ? const _PlaceholderHome() : const LoginScreen(),
+      home: home,
     );
   }
 }

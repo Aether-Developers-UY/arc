@@ -31,7 +31,27 @@ class AuthState {
 
 class AuthNotifier extends Notifier<AuthState> {
   @override
-  AuthState build() => const AuthState();
+  AuthState build() {
+    _restoreSession();
+    return const AuthState(isLoading: true);
+  }
+
+  Future<void> _restoreSession() async {
+    final repository = ref.read(authRepositoryProvider);
+    try {
+      if (!await repository.hasStoredToken()) {
+        state = const AuthState();
+        return;
+      }
+      final user = await repository.currentUser();
+      state = AuthState(user: user);
+    } catch (_) {
+      // No stored token, an invalid/expired one, or the secure-storage
+      // platform channel is unavailable (e.g. in widget tests) — in every
+      // case, fall back to starting logged out rather than crashing.
+      state = const AuthState();
+    }
+  }
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
