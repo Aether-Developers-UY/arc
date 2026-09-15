@@ -87,6 +87,7 @@ class SongTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('data.title', 'New Title');
+        $this->assertDatabaseHas('songs', ['id' => $song->id, 'title' => 'New Title']);
     }
 
     public function test_an_authenticated_user_can_delete_a_song(): void
