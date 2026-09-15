@@ -19,7 +19,7 @@ class StoreAttachmentRequest extends FormRequest
                 'required',
                 'file',
                 'max:20480', // 20MB in kilobytes
-                'mimetypes:audio/mpeg,audio/mp4,audio/wav,audio/x-wav,application/pdf,application/octet-stream',
+                'mimes:mp3,mp4,m4a,wav,pdf',
             ],
         ];
     }
