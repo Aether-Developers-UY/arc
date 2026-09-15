@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_provider.dart';
+import 'song_detail_screen.dart';
 import 'song_list_provider.dart';
 
 class SongListScreen extends ConsumerStatefulWidget {
@@ -62,9 +63,9 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                             title: Text(song.title),
                             subtitle: Text(song.artist ?? ''),
                             trailing: Text(song.originalKey),
-                            onTap: () {
-                              // Navigation to song detail is wired in Task 5.
-                            },
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => SongDetailScreen(song: song)),
+                            ),
                           );
                         },
                       ),
