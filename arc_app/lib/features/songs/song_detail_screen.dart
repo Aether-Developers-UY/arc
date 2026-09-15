@@ -24,6 +24,23 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
     'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
   ];
 
+  Future<void> _refreshSongAttachments() async {
+    try {
+      final repository = ref.read(songRepositoryProvider);
+      final refreshed = await repository.getOne(_song.id);
+      if (!mounted) return;
+      setState(() => _song = refreshed);
+    } catch (_) {
+      // The upload/delete itself already succeeded server-side; only this
+      // follow-up refresh failed (e.g. dropped connection). Surface it so
+      // the UI doesn't silently show stale attachments without explanation.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar la lista de archivos.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final document = ChordProParser.parse(_song.content);
@@ -95,17 +112,11 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
             ),
           ),
           const Divider(height: 1),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: AttachmentList(
-                song: _song,
-                onChanged: () async {
-                  final repository = ref.read(songRepositoryProvider);
-                  final refreshed = await repository.getOne(_song.id);
-                  setState(() => _song = refreshed);
-                },
-              ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: AttachmentList(
+              song: _song,
+              onChanged: _refreshSongAttachments,
             ),
           ),
         ],

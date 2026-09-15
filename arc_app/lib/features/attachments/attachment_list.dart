@@ -83,22 +83,36 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
   }
 
   Future<void> _delete(Attachment attachment) async {
+    setState(() => _errorMessage = null);
     try {
       await ref.read(attachmentRepositoryProvider).delete(attachment.id);
       widget.onChanged();
+    } on DioException catch (e) {
+      setState(() => _errorMessage = _messageFor(e));
     } catch (_) {
       setState(() => _errorMessage = 'No se pudo eliminar el archivo.');
     }
   }
 
   Future<void> _openOrPlay(Attachment attachment) async {
-    final repository = ref.read(attachmentRepositoryProvider);
-    final url = repository.downloadUrl(attachment.id);
+    setState(() => _errorMessage = null);
+    try {
+      final repository = ref.read(attachmentRepositoryProvider);
+      // The download route requires auth, so it's fetched through the
+      // authenticated Dio client to a local file rather than handed as a
+      // bare URL to audioplayers/url_launcher (neither attaches the
+      // Authorization header the backend requires).
+      final localPath = await repository.downloadToTempFile(attachment);
 
-    if (attachment.type == 'audio') {
-      await _player.play(UrlSource(url));
-    } else {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      if (attachment.type == 'audio') {
+        await _player.play(DeviceFileSource(localPath));
+      } else {
+        await launchUrl(Uri.file(localPath), mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'No se pudo abrir el archivo.');
+      }
     }
   }
 

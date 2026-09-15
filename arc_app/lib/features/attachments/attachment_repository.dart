@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/api_client.dart';
 import '../songs/song.dart';
@@ -32,6 +33,20 @@ class AttachmentRepository {
   Future<void> delete(int attachmentId) =>
       _apiClient.dio.delete('/attachments/$attachmentId');
 
-  String downloadUrl(int attachmentId) =>
-      '${ApiClient.baseUrl}/attachments/$attachmentId/download';
+  /// Downloads an attachment through the authenticated [Dio] client (the
+  /// `/download` route requires a Sanctum token) and saves it to a local
+  /// temp file, returning its path. A bare download URL can't be handed
+  /// directly to `audioplayers`/`url_launcher` since neither attaches the
+  /// Authorization header the backend requires.
+  Future<String> downloadToTempFile(Attachment attachment) async {
+    final tempDir = await getTemporaryDirectory();
+    final localPath = '${tempDir.path}/attachment_${attachment.id}_${attachment.originalName}';
+
+    await _apiClient.dio.download(
+      '/attachments/${attachment.id}/download',
+      localPath,
+    );
+
+    return localPath;
+  }
 }
