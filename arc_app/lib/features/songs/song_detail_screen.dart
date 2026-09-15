@@ -1,39 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/chordpro/chordpro_parser.dart';
 import '../../core/chordpro/transposer.dart';
+import '../attachments/attachment_list.dart';
 import 'song.dart';
 import 'song_editor_screen.dart';
+import 'song_list_provider.dart';
 
-class SongDetailScreen extends StatefulWidget {
+class SongDetailScreen extends ConsumerStatefulWidget {
   const SongDetailScreen({super.key, required this.song});
 
   final Song song;
 
   @override
-  State<SongDetailScreen> createState() => _SongDetailScreenState();
+  ConsumerState<SongDetailScreen> createState() => _SongDetailScreenState();
 }
 
-class _SongDetailScreenState extends State<SongDetailScreen> {
-  late String _currentKey = widget.song.originalKey;
+class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
+  late Song _song = widget.song;
+  late String _currentKey = _song.originalKey;
   static const _availableKeys = [
     'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final document = ChordProParser.parse(widget.song.content);
+    final document = ChordProParser.parse(_song.content);
     final semitones =
-        semitonesBetweenKeys(from: widget.song.originalKey, to: _currentKey);
+        semitonesBetweenKeys(from: _song.originalKey, to: _currentKey);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.song.title),
+        title: Text(_song.title),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => SongEditorScreen(existingSong: widget.song)),
+              MaterialPageRoute(builder: (_) => SongEditorScreen(existingSong: _song)),
             ),
           ),
         ],
@@ -55,10 +59,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                     if (value != null) setState(() => _currentKey = value);
                   },
                 ),
-                if (_currentKey != widget.song.originalKey) ...[
+                if (_currentKey != _song.originalKey) ...[
                   const SizedBox(width: 12),
                   TextButton(
-                    onPressed: () => setState(() => _currentKey = widget.song.originalKey),
+                    onPressed: () => setState(() => _currentKey = _song.originalKey),
                     child: const Text('Restablecer'),
                   ),
                 ],
@@ -88,6 +92,20 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 }
                 return _ChordLine(segments: line.segments, semitones: semitones);
               },
+            ),
+          ),
+          const Divider(height: 1),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: AttachmentList(
+                song: _song,
+                onChanged: () async {
+                  final repository = ref.read(songRepositoryProvider);
+                  final refreshed = await repository.getOne(_song.id);
+                  setState(() => _song = refreshed);
+                },
+              ),
             ),
           ),
         ],

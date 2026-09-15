@@ -44,6 +44,11 @@ class SongRepository {
 
   Future<void> delete(int songId) => _apiClient.dio.delete('/songs/$songId');
 
+  Future<Song> getOne(int id) async {
+    final response = await _apiClient.dio.get('/songs/$id');
+    return Song.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
   Future<void> _cacheSongs(List<Song> songs) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = songs.map((s) => s.toRequestJson()..['id'] = s.id).toList();
