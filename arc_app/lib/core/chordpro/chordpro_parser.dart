@@ -32,6 +32,11 @@ class ChordProParser {
   static final _directivePattern = RegExp(r'^\{(\w+)(:.*)?\}$');
   static final _chordTokenPattern = RegExp(r'\[([^\]]+)\]');
 
+  /// Directive names that represent a song section, as opposed to metadata
+  /// directives like {title:}/{key:}/{tempo:} which carry no lyric content
+  /// and should not be mistaken for a section heading.
+  static const _sectionDirectiveNames = {'verse', 'chorus', 'bridge', 'tag'};
+
   static ChordProDocument parse(String content) {
     final rawLines = content.split('\n');
     final lines = <ChordProLine>[];
@@ -40,7 +45,8 @@ class ChordProParser {
       final directiveMatch = _directivePattern.firstMatch(rawLine.trim());
       if (directiveMatch != null) {
         final name = directiveMatch.group(1)!.toLowerCase();
-        lines.add(ChordProLine(segments: const [], sectionLabel: name));
+        final sectionLabel = _sectionDirectiveNames.contains(name) ? name : null;
+        lines.add(ChordProLine(segments: const [], sectionLabel: sectionLabel));
         continue;
       }
 

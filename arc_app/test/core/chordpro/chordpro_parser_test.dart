@@ -38,6 +38,13 @@ void main() {
       ]);
     });
 
+    test('does not treat metadata directives like {title:} or {key:} as sections', () {
+      final doc = ChordProParser.parse('{title: Sublime Gracia}\n{key: G}\n[G]Letra');
+
+      expect(doc.lines[0].sectionLabel, isNull);
+      expect(doc.lines[1].sectionLabel, isNull);
+    });
+
     test('preserves blank lines', () {
       final doc = ChordProParser.parse('[G]Primera\n\n[D]Segunda');
 

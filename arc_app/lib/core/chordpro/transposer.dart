@@ -3,10 +3,20 @@ const _flatScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 
 
 final _chordRootPattern = RegExp(r'^([A-G])(#|b)?');
 
-/// Transposes a chord symbol like "G", "Am7", "F#sus4" by [semitones].
-/// Returns the input unchanged if it doesn't start with a recognizable
-/// note letter (e.g. "N.C." for "no chord" markers).
+/// Transposes a chord symbol like "G", "Am7", "F#sus4", or a slash chord
+/// like "D/F#" by [semitones]. Returns the input unchanged if it doesn't
+/// start with a recognizable note letter (e.g. "N.C." for "no chord"
+/// markers).
 String transposeChord(String chord, {required int semitones, bool preferFlats = false}) {
+  final slashIndex = chord.indexOf('/');
+  if (slashIndex != -1) {
+    final root = chord.substring(0, slashIndex);
+    final bass = chord.substring(slashIndex + 1);
+    final transposedRoot = transposeChord(root, semitones: semitones, preferFlats: preferFlats);
+    final transposedBass = transposeChord(bass, semitones: semitones, preferFlats: preferFlats);
+    return '$transposedRoot/$transposedBass';
+  }
+
   final match = _chordRootPattern.firstMatch(chord);
   if (match == null) return chord;
 

@@ -38,6 +38,11 @@ void main() {
     test('leaves non-chord input unchanged if unrecognized', () {
       expect(transposeChord('N.C.', semitones: 2), 'N.C.');
     });
+
+    test('transposes slash chords, moving both root and bass note', () {
+      expect(transposeChord('D/F#', semitones: 2), 'E/G#');
+      expect(transposeChord('G/B', semitones: -2), 'F/A');
+    });
   });
 
   group('semitonesBetweenKeys', () {
