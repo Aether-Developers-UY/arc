@@ -1,4 +1,4 @@
-# Praise Chords — Diseño v1
+# Arc — Diseño v1
 
 App para el ministerio de alabanza de una iglesia, inspirada en OnSong: gestión de canciones con letra y acordes, transposición de tonalidad y archivos adjuntos por canción (pistas de audio, PDFs, etc.).
 
