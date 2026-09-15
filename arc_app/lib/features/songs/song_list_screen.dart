@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_provider.dart';
 import 'song_detail_screen.dart';
+import 'song_editor_screen.dart';
 import 'song_list_provider.dart';
 
 class SongListScreen extends ConsumerStatefulWidget {
@@ -75,6 +76,12 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const SongEditorScreen()),
+        ),
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/chordpro/chordpro_parser.dart';
 import '../../core/chordpro/transposer.dart';
 import 'song.dart';
+import 'song_editor_screen.dart';
 
 class SongDetailScreen extends StatefulWidget {
   const SongDetailScreen({super.key, required this.song});
@@ -26,7 +27,17 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         semitonesBetweenKeys(from: widget.song.originalKey, to: _currentKey);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.song.title)),
+      appBar: AppBar(
+        title: Text(widget.song.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => SongEditorScreen(existingSong: widget.song)),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
