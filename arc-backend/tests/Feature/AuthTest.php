@@ -40,6 +40,22 @@ class AuthTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_an_authenticated_user_can_fetch_their_own_profile(): void
+    {
+        $user = User::factory()->create(['name' => 'Musico Test', 'email' => 'musico@example.com']);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me');
+
+        $response->assertOk()->assertJsonPath('user.email', 'musico@example.com');
+    }
+
+    public function test_guests_cannot_fetch_the_profile_endpoint(): void
+    {
+        $this->getJson('/api/me')->assertUnauthorized();
+    }
+
     public function test_an_authenticated_user_can_log_out_invalidating_the_token(): void
     {
         $user = User::factory()->create();
