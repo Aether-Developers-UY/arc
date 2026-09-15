@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SongController;
 use Illuminate\Support\Facades\Route;
@@ -11,4 +12,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('songs', SongController::class);
+    Route::post('/songs/{song}/attachments', [AttachmentController::class, 'store']);
+    Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download']);
+    Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);
 });

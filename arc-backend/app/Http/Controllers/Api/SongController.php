@@ -13,6 +13,7 @@ class SongController extends Controller
     public function index(Request $request)
     {
         $songs = Song::query()
+            ->with('attachments')
             ->when($request->query('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
@@ -37,7 +38,7 @@ class SongController extends Controller
 
     public function show(Song $song)
     {
-        return response()->json(['data' => $song]);
+        return response()->json(['data' => $song->load('attachments')]);
     }
 
     public function update(UpdateSongRequest $request, Song $song)
