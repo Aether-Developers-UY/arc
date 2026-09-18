@@ -93,9 +93,12 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
       onReset: () => setState(() => _currentKey = _song.originalKey),
     );
 
-    final lyrics = ArcaCard(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      child: _Lyrics(document: document, semitones: semitones),
+    final lyrics = SizedBox(
+      width: double.infinity,
+      child: ArcaCard(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: _Lyrics(document: document, semitones: semitones),
+      ),
     );
 
     final attachments = ArcaCard(
