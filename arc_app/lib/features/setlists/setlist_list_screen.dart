@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format/date_format.dart';
+import '../../core/theme/arca_tokens.dart';
+import '../../core/widgets/arca_card.dart';
+import '../../core/widgets/content_frame.dart';
+import '../../core/widgets/page_header.dart';
+import 'setlist.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_editor_screen.dart';
 import 'setlist_list_provider.dart';
@@ -12,37 +18,144 @@ class SetlistListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final setlistsAsync = ref.watch(setlistListProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Setlists')),
-      body: setlistsAsync.when(
-        data: (setlists) => setlists.isEmpty
-            ? const Center(child: Text('No hay setlists todavía.'))
-            : RefreshIndicator(
-                onRefresh: () => ref.read(setlistListProvider.notifier).refresh(),
-                child: ListView.builder(
-                  itemCount: setlists.length,
-                  itemBuilder: (context, index) {
-                    final setlist = setlists[index];
-                    final dateLabel =
-                        '${setlist.serviceDate.day.toString().padLeft(2, '0')}/${setlist.serviceDate.month.toString().padLeft(2, '0')}/${setlist.serviceDate.year}';
-                    return ListTile(
-                      title: Text(setlist.name?.isNotEmpty == true ? setlist.name! : dateLabel),
-                      subtitle: Text(dateLabel),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => SetlistDetailScreen(setlistId: setlist.id)),
-                      ),
-                    );
-                  },
-                ),
+    return ContentFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(
+            title: 'Setlists',
+            subtitle: 'Las canciones de cada servicio',
+            trailing: FilledButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo setlist'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SetlistEditorScreen()),
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error al cargar setlists: $error')),
+            ),
+          ),
+          Expanded(
+            child: setlistsAsync.when(
+              data: (setlists) => setlists.isEmpty
+                  ? const _EmptyState(
+                      icon: Icons.event_note_outlined,
+                      title: 'Todavía no hay setlists',
+                      message: 'Creá el del próximo servicio con «Nuevo setlist».',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => ref.read(setlistListProvider.notifier).refresh(),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: setlists.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) => _SetlistCard(setlist: setlists[index]),
+                      ),
+                    ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => const _EmptyState(
+                icon: Icons.cloud_off_outlined,
+                title: 'No se pudieron cargar los setlists',
+                message: 'Revisá tu conexión y deslizá hacia abajo para reintentar.',
+              ),
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SetlistEditorScreen()),
-        ),
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+class _SetlistCard extends StatelessWidget {
+  const _SetlistCard({required this.setlist});
+
+  final Setlist setlist;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final date = setlist.serviceDate;
+    final hasName = setlist.name?.isNotEmpty == true;
+
+    return ArcaCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => SetlistDetailScreen(setlistId: setlist.id)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '${date.day}',
+                  style: text.titleLarge?.copyWith(color: scheme.primary, height: 1.1),
+                ),
+                Text(
+                  monthAbbr(date).toUpperCase(),
+                  style: text.labelSmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasName ? setlist.name! : weekdayName(date),
+                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasName ? '${weekdayName(date)} · ${shortDate(date)}' : shortDate(date),
+                  style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right, color: context.arca.textSecondary),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.icon, required this.title, required this.message});
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40, color: context.arca.textSecondary),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: context.arca.textSecondary),
+          ),
+        ],
       ),
     );
   }
