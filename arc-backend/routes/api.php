@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SetlistController;
 use App\Http\Controllers\Api\SongController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/songs/{song}/attachments', [AttachmentController::class, 'store']);
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download']);
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);
+    Route::apiResource('setlists', SetlistController::class);
 });
