@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateSetlistSongRequest;
 use App\Models\Setlist;
 use App\Models\SetlistSong;
 use App\Models\Song;
+use Illuminate\Support\Facades\DB;
 
 class SetlistSongController extends Controller
 {
@@ -42,9 +43,11 @@ class SetlistSongController extends Controller
 
     public function reorder(ReorderSetlistSongsRequest $request, Setlist $setlist)
     {
-        foreach ($request->validated('setlist_song_ids') as $position => $setlistSongId) {
-            SetlistSong::where('id', $setlistSongId)->update(['position' => $position]);
-        }
+        DB::transaction(function () use ($request) {
+            foreach ($request->validated('setlist_song_ids') as $position => $setlistSongId) {
+                SetlistSong::where('id', $setlistSongId)->update(['position' => $position]);
+            }
+        });
 
         return response()->json(['data' => $setlist->setlistSongs()->get()]);
     }
