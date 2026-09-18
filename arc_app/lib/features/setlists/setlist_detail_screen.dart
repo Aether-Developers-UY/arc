@@ -22,6 +22,12 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  /// True while a reorder/remove/add mutation is in flight. Guards against
+  /// overlapping mutations (e.g. dragging again before the previous reorder
+  /// persisted, or removing a song mid-reorder) racing each other and
+  /// leaving the UI in a state that matches neither request.
+  bool _isMutating = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,9 +49,22 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     }
   }
 
+  /// Re-fetches the setlist from the server without toggling `_isLoading`
+  /// (so it doesn't replace the list with a full-screen spinner) — used
+  /// after a mutation to re-sync local state with the server, whether the
+  /// mutation succeeded or failed.
+  Future<void> _reloadSilently() async {
+    try {
+      final setlist = await ref.read(setlistRepositoryProvider).getOne(widget.setlistId);
+      if (mounted) setState(() => _setlist = setlist);
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = 'No se pudo actualizar el setlist.');
+    }
+  }
+
   Future<void> _onReorder(int oldIndex, int newIndex) async {
     final setlist = _setlist;
-    if (setlist == null) return;
+    if (setlist == null || _isMutating) return;
 
     final songs = List<SetlistSong>.from(setlist.songs);
     if (newIndex > oldIndex) newIndex -= 1;
@@ -53,12 +72,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     songs.insert(newIndex, moved);
 
     // Optimistic: reorder locally immediately, persist in background.
-    setState(() => _setlist = Setlist(
-          id: setlist.id,
-          serviceDate: setlist.serviceDate,
-          name: setlist.name,
-          songs: songs,
-        ));
+    setState(() {
+      _isMutating = true;
+      _setlist = Setlist(
+        id: setlist.id,
+        serviceDate: setlist.serviceDate,
+        name: setlist.name,
+        songs: songs,
+      );
+    });
 
     try {
       await ref.read(setlistRepositoryProvider).reorder(
@@ -70,31 +92,39 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       if (mounted) {
         setState(() => _errorMessage = 'No se pudo guardar el nuevo orden.');
       }
-      await _load();
+    } finally {
+      // Re-sync after every persist attempt (success or failure), not just
+      // on failure — this is what keeps local state matching the server
+      // and clears the mutation guard so the next reorder/remove can run.
+      await _reloadSilently();
+      if (mounted) setState(() => _isMutating = false);
     }
   }
 
   Future<void> _removeSong(SetlistSong setlistSong) async {
     final setlist = _setlist;
-    if (setlist == null) return;
+    if (setlist == null || _isMutating) return;
+    setState(() => _isMutating = true);
     try {
       await ref.read(setlistRepositoryProvider).removeSong(
             setlistId: setlist.id,
             setlistSongId: setlistSong.id,
           );
-      await _load();
     } catch (_) {
       if (mounted) setState(() => _errorMessage = 'No se pudo quitar la canción.');
+    } finally {
+      await _reloadSilently();
+      if (mounted) setState(() => _isMutating = false);
     }
   }
 
   Future<void> _openAddSong() async {
     final setlist = _setlist;
-    if (setlist == null) return;
+    if (setlist == null || _isMutating) return;
     final added = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => AddSongToSetlistScreen(setlistId: setlist.id)),
     );
-    if (added == true) await _load();
+    if (added == true) await _reloadSilently();
   }
 
   /// A setlist entry only carries title/artist/key for display in this
@@ -153,7 +183,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                                       Text(setlistSong.key),
                                       IconButton(
                                         icon: const Icon(Icons.close),
-                                        onPressed: () => _removeSong(setlistSong),
+                                        onPressed: _isMutating
+                                            ? null
+                                            : () => _removeSong(setlistSong),
                                       ),
                                     ],
                                   ),
@@ -177,16 +209,27 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
 /// Fetches the full [Song] (content, tempo, attachments) for [songId] before
 /// handing off to [SongDetailScreen], since a setlist entry only carries
 /// enough data (title/artist/key) for display in the setlist list itself.
-class _SongFromSetlistLoader extends ConsumerWidget {
+class _SongFromSetlistLoader extends ConsumerStatefulWidget {
   const _SongFromSetlistLoader({required this.songId, required this.initialKey});
 
   final int songId;
   final String initialKey;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SongFromSetlistLoader> createState() => _SongFromSetlistLoaderState();
+}
+
+class _SongFromSetlistLoaderState extends ConsumerState<_SongFromSetlistLoader> {
+  // Fetched once in initState (not inside build) so a widget rebuild for an
+  // unrelated reason (theme/orientation change, hot reload) doesn't hand
+  // FutureBuilder a new Future identity and re-trigger the network request.
+  late final Future<Song> _songFuture =
+      ref.read(songRepositoryProvider).getOne(widget.songId);
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<Song>(
-      future: ref.read(songRepositoryProvider).getOne(songId),
+      future: _songFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -197,7 +240,7 @@ class _SongFromSetlistLoader extends ConsumerWidget {
             body: const Center(child: Text('No se pudo cargar la canción.')),
           );
         }
-        return SongDetailScreen(song: snapshot.data!, initialKey: initialKey);
+        return SongDetailScreen(song: snapshot.data!, initialKey: widget.initialKey);
       },
     );
   }
