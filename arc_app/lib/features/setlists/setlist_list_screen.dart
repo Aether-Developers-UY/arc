@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'setlist_detail_screen.dart';
 import 'setlist_editor_screen.dart';
 import 'setlist_list_provider.dart';
 
@@ -27,9 +28,9 @@ class SetlistListScreen extends ConsumerWidget {
                     return ListTile(
                       title: Text(setlist.name?.isNotEmpty == true ? setlist.name! : dateLabel),
                       subtitle: Text(dateLabel),
-                      onTap: () {
-                        // Navigation to setlist detail is wired in Task 8.
-                      },
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => SetlistDetailScreen(setlistId: setlist.id)),
+                      ),
                     );
                   },
                 ),
