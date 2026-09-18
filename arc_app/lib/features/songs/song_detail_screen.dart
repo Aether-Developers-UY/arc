@@ -9,9 +9,14 @@ import 'song_editor_screen.dart';
 import 'song_list_provider.dart';
 
 class SongDetailScreen extends ConsumerStatefulWidget {
-  const SongDetailScreen({super.key, required this.song});
+  const SongDetailScreen({super.key, required this.song, this.initialKey});
 
   final Song song;
+
+  /// The key to show the song in when this screen opens. Defaults to the
+  /// song's own original key. Used when opening a song from a setlist,
+  /// where the setlist may have chosen a different key for that service.
+  final String? initialKey;
 
   @override
   ConsumerState<SongDetailScreen> createState() => _SongDetailScreenState();
@@ -19,7 +24,7 @@ class SongDetailScreen extends ConsumerStatefulWidget {
 
 class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
   late Song _song = widget.song;
-  late String _currentKey = _song.originalKey;
+  late String _currentKey = widget.initialKey ?? _song.originalKey;
   static const _availableKeys = [
     'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
   ];
