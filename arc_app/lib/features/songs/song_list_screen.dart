@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../auth/auth_provider.dart';
-import '../setlists/setlist_list_screen.dart';
+import '../../core/theme/arca_tokens.dart';
+import '../../core/widgets/arca_card.dart';
+import '../../core/widgets/content_frame.dart';
+import '../../core/widgets/key_badge.dart';
+import '../../core/widgets/page_header.dart';
 import 'song_detail_screen.dart';
 import 'song_editor_screen.dart';
 import 'song_list_provider.dart';
@@ -27,69 +30,125 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
   Widget build(BuildContext context) {
     final songsAsync = ref.watch(songListProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Canciones'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.event_note),
-            tooltip: 'Setlists',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SetlistListScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: Column(
+    return ContentFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Buscar por título o artista',
-                border: OutlineInputBorder(),
+          PageHeader(
+            title: 'Canciones',
+            subtitle: 'El repertorio del ministerio',
+            trailing: FilledButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva canción'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SongEditorScreen()),
               ),
-              onSubmitted: (value) => ref.read(songListProvider.notifier).search(value),
             ),
           ),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              hintText: 'Buscar por título o artista',
+            ),
+            textInputAction: TextInputAction.search,
+            onSubmitted: (value) => ref.read(songListProvider.notifier).search(value),
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: songsAsync.when(
               data: (songs) => songs.isEmpty
-                  ? const Center(child: Text('No hay canciones todavía.'))
+                  ? _EmptyState(
+                      icon: Icons.library_music_outlined,
+                      title: 'Todavía no hay canciones',
+                      message: 'Agregá la primera con «Nueva canción».',
+                    )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(songListProvider.notifier).refresh(),
-                      child: ListView.builder(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 24),
                         itemCount: songs.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final song = songs[index];
-                          return ListTile(
-                            title: Text(song.title),
-                            subtitle: Text(song.artist ?? ''),
-                            trailing: Text(song.originalKey),
+                          return ArcaCard(
                             onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => SongDetailScreen(song: song)),
+                              MaterialPageRoute(
+                                builder: (_) => SongDetailScreen(song: song),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        song.title,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      if (song.artist?.isNotEmpty == true) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          song.artist!,
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: context.arca.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                KeyBadge(song.originalKey),
+                              ],
                             ),
                           );
                         },
                       ),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('Error al cargar canciones: $error')),
+              error: (error, _) => _EmptyState(
+                icon: Icons.cloud_off_outlined,
+                title: 'No se pudieron cargar las canciones',
+                message: 'Revisá tu conexión y deslizá hacia abajo para reintentar.',
+              ),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SongEditorScreen()),
-        ),
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.icon, required this.title, required this.message});
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40, color: context.arca.textSecondary),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: context.arca.textSecondary),
+          ),
+        ],
       ),
     );
   }
