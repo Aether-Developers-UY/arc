@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_provider.dart';
+import '../setlists/setlist_list_screen.dart';
 import 'song_detail_screen.dart';
 import 'song_editor_screen.dart';
 import 'song_list_provider.dart';
@@ -30,6 +31,13 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
       appBar: AppBar(
         title: const Text('Canciones'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.event_note),
+            tooltip: 'Setlists',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SetlistListScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authProvider.notifier).logout(),
