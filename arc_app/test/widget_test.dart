@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/main.dart';
 
 void main() {
   setUp(() {
+    ArcaTheme.useGoogleFonts = false;
     // flutter_secure_storage has no platform implementation in widget
     // tests; stub its channel to reply "no stored value" immediately so
     // session restoration on startup resolves instead of hanging.
