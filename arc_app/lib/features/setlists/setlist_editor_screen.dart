@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/content_frame.dart';
+
 import 'setlist.dart';
 import 'setlist_list_provider.dart';
 
@@ -92,8 +94,10 @@ class _SetlistEditorScreenState extends ConsumerState<SetlistEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Editar setlist' : 'Nuevo setlist')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: ContentFrame(
+        maxWidth: 640,
+        child: Padding(
+        padding: const EdgeInsets.only(top: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -130,6 +134,7 @@ class _SetlistEditorScreenState extends ConsumerState<SetlistEditorScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

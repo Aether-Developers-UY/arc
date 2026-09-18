@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/content_frame.dart';
+
 import 'song.dart';
 import 'song_list_provider.dart';
 
@@ -107,8 +109,10 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Editar canción' : 'Nueva canción')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: ContentFrame(
+        maxWidth: 640,
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -182,6 +186,7 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

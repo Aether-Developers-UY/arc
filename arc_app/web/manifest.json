@@ -1,11 +1,11 @@
 {
-    "name": "arc_app",
-    "short_name": "arc_app",
+    "name": "Arca",
+    "short_name": "Arca",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Las canciones del ministerio, listas para el servicio.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/arca_tokens.dart';
+import '../../core/widgets/arca_card.dart';
+import '../../core/widgets/content_frame.dart';
+import '../../core/widgets/key_badge.dart';
 import '../songs/song.dart';
 import '../songs/song_list_provider.dart';
 import 'setlist_list_provider.dart';
@@ -45,7 +49,9 @@ class _AddSongToSetlistScreenState extends ConsumerState<AddSongToSetlistScreen>
 
     return Scaffold(
       appBar: AppBar(title: const Text('Agregar canción')),
-      body: Column(
+      body: ContentFrame(
+        maxWidth: 720,
+        child: Column(
         children: [
           if (_errorMessage != null)
             Padding(
@@ -58,15 +64,42 @@ class _AddSongToSetlistScreenState extends ConsumerState<AddSongToSetlistScreen>
           if (_isAdding) const LinearProgressIndicator(),
           Expanded(
             child: songsAsync.when(
-              data: (songs) => ListView.builder(
+              data: (songs) => ListView.separated(
+                padding: const EdgeInsets.only(top: 8, bottom: 24),
                 itemCount: songs.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final song = songs[index];
-                  return ListTile(
-                    title: Text(song.title),
-                    subtitle: Text(song.artist ?? ''),
-                    trailing: Text(song.originalKey),
+                  return ArcaCard(
                     onTap: _isAdding ? null : () => _add(song),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                song.title,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              if (song.artist?.isNotEmpty == true)
+                                Text(
+                                  song.artist!,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: context.arca.textSecondary),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        KeyBadge(song.originalKey),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -75,6 +108,7 @@ class _AddSongToSetlistScreenState extends ConsumerState<AddSongToSetlistScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }
