@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/chordpro/chordpro_parser.dart';
 import '../../core/chordpro/transposer.dart';
+import '../../core/layout.dart';
+import '../../core/theme/arca_theme.dart';
+import '../../core/theme/arca_tokens.dart';
+import '../../core/widgets/arca_card.dart';
+import '../../core/widgets/content_frame.dart';
 import '../attachments/attachment_list.dart';
 import 'song.dart';
 import 'song_editor_screen.dart';
@@ -46,86 +51,195 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
     }
   }
 
+  String? get _metaLine {
+    final parts = <String>[
+      if (_song.artist?.isNotEmpty == true) _song.artist!,
+      if (_song.tempo != null) '${_song.tempo} BPM',
+      if (_song.timeSignature?.isNotEmpty == true) _song.timeSignature!,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final document = ChordProParser.parse(_song.content);
-    final semitones =
-        semitonesBetweenKeys(from: _song.originalKey, to: _currentKey);
+    final semitones = semitonesBetweenKeys(from: _song.originalKey, to: _currentKey);
+
+    final header = Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_song.title, style: Theme.of(context).textTheme.headlineMedium),
+          if (_metaLine != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              _metaLine!,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.copyWith(color: context.arca.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final keyControls = _KeyControls(
+      keys: _availableKeys,
+      current: _currentKey,
+      original: _song.originalKey,
+      onSelect: (key) => setState(() => _currentKey = key),
+      onReset: () => setState(() => _currentKey = _song.originalKey),
+    );
+
+    final lyrics = ArcaCard(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: _Lyrics(document: document, semitones: semitones),
+    );
+
+    final attachments = ArcaCard(
+      child: AttachmentList(song: _song, onChanged: _refreshSongAttachments),
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_song.title),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            tooltip: 'Editar canción',
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => SongEditorScreen(existingSong: _song)),
             ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                const Text('Tonalidad:'),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: _currentKey,
-                  items: _availableKeys
-                      .map((key) => DropdownMenuItem(value: key, child: Text(key)))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) setState(() => _currentKey = value);
-                  },
-                ),
-                if (_currentKey != _song.originalKey) ...[
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: () => setState(() => _currentKey = _song.originalKey),
-                    child: const Text('Restablecer'),
+      body: ContentFrame(
+        maxWidth: 1200,
+        child: isWide(context)
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [header, keyControls, const SizedBox(height: 16), lyrics],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  SizedBox(
+                    width: 320,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(top: 8, bottom: 32),
+                      child: attachments,
+                    ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: document.lines.length,
-              itemBuilder: (context, index) {
-                final line = document.lines[index];
-                if (line.sectionLabel != null && line.segments.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 12, bottom: 4),
-                    child: Text(
-                      line.sectionLabel!.toUpperCase(),
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                  );
-                }
-                if (line.segments.isEmpty) {
-                  return const SizedBox(height: 16);
-                }
-                return _ChordLine(segments: line.segments, semitones: semitones);
-              },
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: AttachmentList(
-              song: _song,
-              onChanged: _refreshSongAttachments,
-            ),
-          ),
-        ],
+              )
+            : ListView(
+                padding: const EdgeInsets.only(bottom: 32),
+                children: [
+                  header,
+                  keyControls,
+                  const SizedBox(height: 16),
+                  lyrics,
+                  const SizedBox(height: 16),
+                  attachments,
+                ],
+              ),
       ),
+    );
+  }
+}
+
+class _KeyControls extends StatelessWidget {
+  const _KeyControls({
+    required this.keys,
+    required this.current,
+    required this.original,
+    required this.onSelect,
+    required this.onReset,
+  });
+
+  final List<String> keys;
+  final String current;
+  final String original;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Tonalidad', style: text.titleSmall),
+            const SizedBox(width: 8),
+            Text(
+              'Original: $original',
+              style: text.bodySmall?.copyWith(color: context.arca.textSecondary),
+            ),
+            const Spacer(),
+            if (current != original)
+              TextButton(onPressed: onReset, child: const Text('Restablecer')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final key in keys)
+              ChoiceChip(
+                label: Text(
+                  key,
+                  style: ArcaTheme.mono(const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                selected: key == current,
+                onSelected: (_) => onSelect(key),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Lyrics extends StatelessWidget {
+  const _Lyrics({required this.document, required this.semitones});
+
+  final ChordProDocument document;
+  final int semitones;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in document.lines)
+          if (line.sectionLabel != null && line.segments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 18, bottom: 6),
+              child: Text(
+                line.sectionLabel!.toUpperCase(),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+              ),
+            )
+          else if (line.segments.isEmpty)
+            const SizedBox(height: 14)
+          else
+            _ChordLine(segments: line.segments, semitones: semitones),
+      ],
     );
   }
 }
@@ -138,28 +252,38 @@ class _ChordLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chordStyle = ArcaTheme.mono(
+      TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: context.arca.chord,
+      ),
+    );
+    final lyricStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontSize: 20,
+          height: 1.3,
+          fontWeight: FontWeight.w500,
+        );
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.end,
-        children: segments.map((segment) {
-          final transposed = segment.chord == null
-              ? null
-              : transposeChord(segment.chord!, semitones: semitones);
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                transposed ?? '',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+        children: [
+          for (final segment in segments)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  segment.chord == null
+                      ? ' '
+                      : transposeChord(segment.chord!, semitones: semitones),
+                  style: chordStyle,
                 ),
-              ),
-              Text(segment.text.isEmpty ? ' ' : segment.text),
-            ],
-          );
-        }).toList(),
+                Text(segment.text.isEmpty ? ' ' : segment.text, style: lyricStyle),
+              ],
+            ),
+        ],
       ),
     );
   }
