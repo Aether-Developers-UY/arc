@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/content_frame.dart';
-
+import 'editor/editable_document.dart';
+import 'editor/song_lyrics_editor.dart';
 import 'song.dart';
 import 'song_list_provider.dart';
 
@@ -26,8 +27,17 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
       TextEditingController(text: widget.existingSong?.tempo?.toString());
   late final _timeSignatureController =
       TextEditingController(text: widget.existingSong?.timeSignature);
-  late final _contentController = TextEditingController(text: widget.existingSong?.content);
   late final _notesController = TextEditingController(text: widget.existingSong?.notes);
+
+  late List<EditableSection> _lyricsSections = _initialSections();
+
+  List<EditableSection> _initialSections() {
+    final content = widget.existingSong?.content;
+    if (content == null || content.trim().isEmpty) {
+      return [EditableSection(label: 'verse')];
+    }
+    return parseToEditable(content);
+  }
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -39,7 +49,6 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
     _keyController.dispose();
     _tempoController.dispose();
     _timeSignatureController.dispose();
-    _contentController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -65,7 +74,7 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
       tempo: tempo,
       timeSignature:
           _timeSignatureController.text.trim().isEmpty ? null : _timeSignatureController.text.trim(),
-      content: _contentController.text,
+      content: editableToChordPro(_lyricsSections),
       notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       attachments: widget.existingSong?.attachments ?? [],
     );
@@ -112,81 +121,78 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
       body: ContentFrame(
         maxWidth: 640,
         child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Título *'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _artistController,
-              decoration: const InputDecoration(labelText: 'Artista'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _keyController,
-                    decoration: const InputDecoration(labelText: 'Tonalidad *'),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Título *'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _artistController,
+                decoration: const InputDecoration(labelText: 'Artista'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _keyController,
+                      decoration: const InputDecoration(labelText: 'Tonalidad *'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _tempoController,
+                      decoration: const InputDecoration(labelText: 'Tempo (BPM)'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _timeSignatureController,
+                decoration: const InputDecoration(labelText: 'Compás (ej: 4/4)'),
+              ),
+              const SizedBox(height: 20),
+              Text('Letra y acordes', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SongLyricsEditor(
+                sections: _lyricsSections,
+                onChanged: (updated) => setState(() => _lyricsSections = updated),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(labelText: 'Indicaciones'),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 24),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _tempoController,
-                    decoration: const InputDecoration(labelText: 'Tempo (BPM)'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _timeSignatureController,
-              decoration: const InputDecoration(labelText: 'Compás (ej: 4/4)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(
-                labelText: 'Letra y acordes (formato ChordPro) *',
-                alignLabelWithHint: true,
+              FilledButton(
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Guardar'),
               ),
-              maxLines: 12,
-              style: const TextStyle(fontFamily: 'monospace'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notas'),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            FilledButton(
-              onPressed: _isSaving ? null : _save,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Guardar'),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
