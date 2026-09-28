@@ -73,6 +73,9 @@ class SongLyricsEditor extends StatelessWidget {
       children: [
         for (var i = 0; i < sections.length; i++)
           _SectionBlock(
+            // Keyed by object identity so removing a section doesn't shift
+            // another section's descendant _LineEditor state onto it.
+            key: ObjectKey(sections[i]),
             section: sections[i],
             onChanged: (updated) => _updateSection(i, updated),
             onRemove: sections.length > 1 ? () => _removeSection(i) : null,
@@ -89,7 +92,7 @@ class SongLyricsEditor extends StatelessWidget {
 }
 
 class _SectionBlock extends StatelessWidget {
-  const _SectionBlock({required this.section, required this.onChanged, this.onRemove});
+  const _SectionBlock({super.key, required this.section, required this.onChanged, this.onRemove});
 
   final EditableSection section;
   final ValueChanged<EditableSection> onChanged;
@@ -151,6 +154,12 @@ class _SectionBlock extends StatelessWidget {
               )
             else
               _LineEditor(
+                // Keyed by the line's own object identity, not its list
+                // position — removing a line/section shifts the positions
+                // of the ones after it, and without this key Flutter would
+                // reuse another line's State (and its TextEditingControllers)
+                // by slot, silently showing stale text.
+                key: ObjectKey(section.lines[i]),
                 line: section.lines[i],
                 onChanged: (updated) => _updateLine(i, updated),
                 onRemove: section.lines.length > 1 ? () => _removeLine(i) : null,
@@ -167,7 +176,7 @@ class _SectionBlock extends StatelessWidget {
 }
 
 class _LineEditor extends StatefulWidget {
-  const _LineEditor({required this.line, required this.onChanged, this.onRemove});
+  const _LineEditor({super.key, required this.line, required this.onChanged, this.onRemove});
 
   final EditableLine line;
   final ValueChanged<EditableLine> onChanged;
