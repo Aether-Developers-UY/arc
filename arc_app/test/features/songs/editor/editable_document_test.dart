@@ -41,6 +41,19 @@ void main() {
       expect(lyricLine.segments.last.text, 'Instrumental');
     });
 
+    test('preserves a chord placed mid-word with no surrounding space', () {
+      const original = '{verse}\nQue a un pecador salv[G]ó\n';
+
+      final sections = parseToEditable(original);
+      final serialized = editableToChordPro(sections);
+
+      // The exact source text must survive byte-for-byte — no space should
+      // be inserted between "salv" and "[G]ó" just because they came from
+      // separate segments.
+      expect(serialized, contains('salv[G]ó'));
+      expect(serialized, isNot(contains('salv ó')));
+    });
+
     test('parsing blank content never crashes and returns at least one section', () {
       final sections = parseToEditable('');
       expect(sections, isNotEmpty);

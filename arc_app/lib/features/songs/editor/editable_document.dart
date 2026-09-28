@@ -3,10 +3,17 @@ import '../../../core/chordpro/chordpro_parser.dart';
 /// One word of lyric text, with an optional chord attached to it — the
 /// chord that appears just before this word, ChordPro-style.
 class EditableWord {
-  EditableWord({required this.text, this.chord});
+  EditableWord({required this.text, this.chord, this.spaceAfter = true});
 
   String text;
   String? chord;
+
+  /// Whether this word was followed by a literal space in the original
+  /// ChordPro text. False only when a chord token immediately followed
+  /// this word's text with no space between them (e.g. a chord placed
+  /// mid-word, like "salv[G]ó") — without tracking this, re-serializing
+  /// would insert a space that was never there.
+  bool spaceAfter;
 }
 
 /// One line of lyrics: a sequence of words, each optionally carrying a
@@ -101,7 +108,18 @@ EditableLine _segmentsToLine(List<ChordProSegment> segments) {
   for (final segment in segments) {
     final parts = segment.text.split(' ');
     for (var i = 0; i < parts.length; i++) {
-      words.add(EditableWord(text: parts[i], chord: i == 0 ? segment.chord : null));
+      final isLastPartOfSegment = i == parts.length - 1;
+      // Parts within a segment were split on a real space, so a space
+      // belongs between them. The segment's LAST part is different: a
+      // chord token consumes zero characters of the original text, so
+      // whether a space follows depends only on whether the segment's own
+      // text ended in one (not on the presence of a following segment).
+      final spaceAfter = isLastPartOfSegment ? segment.text.endsWith(' ') : true;
+      words.add(EditableWord(
+        text: parts[i],
+        chord: i == 0 ? segment.chord : null,
+        spaceAfter: spaceAfter,
+      ));
     }
   }
   if (words.isEmpty) {
@@ -140,7 +158,7 @@ String _lineToChordProText(EditableLine line) {
     }
     buffer.write(word.text);
     final isLast = i == line.words.length - 1;
-    if (!isLast && word.text.isNotEmpty) {
+    if (!isLast && word.text.isNotEmpty && word.spaceAfter) {
       buffer.write(' ');
     }
   }
