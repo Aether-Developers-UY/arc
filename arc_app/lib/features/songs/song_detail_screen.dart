@@ -60,6 +60,31 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
+  Widget? get _indicationsCard {
+    final notes = _song.notes?.trim();
+    if (notes == null || notes.isEmpty) return null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ArcaCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'INDICACIONES',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(notes),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final document = ChordProParser.parse(_song.content);
@@ -84,6 +109,8 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
         ],
       ),
     );
+
+    final indications = _indicationsCard;
 
     final keyControls = _KeyControls(
       keys: _availableKeys,
@@ -128,7 +155,13 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
                       padding: const EdgeInsets.only(bottom: 32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [header, keyControls, const SizedBox(height: 16), lyrics],
+                        children: [
+                          header,
+                          ?indications,
+                          keyControls,
+                          const SizedBox(height: 16),
+                          lyrics,
+                        ],
                       ),
                     ),
                   ),
@@ -146,6 +179,7 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
                 padding: const EdgeInsets.only(bottom: 32),
                 children: [
                   header,
+                  ?indications,
                   keyControls,
                   const SizedBox(height: 16),
                   lyrics,
