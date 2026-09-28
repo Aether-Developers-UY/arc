@@ -73,9 +73,10 @@ class SongLyricsEditor extends StatelessWidget {
       children: [
         for (var i = 0; i < sections.length; i++)
           _SectionBlock(
-            // Keyed by object identity so removing a section doesn't shift
-            // another section's descendant _LineEditor state onto it.
-            key: ObjectKey(sections[i]),
+            // Keyed by the section's stable id (not object identity — a
+            // new EditableSection instance is built on every edit — and
+            // not list position, which shifts when a section is removed).
+            key: ValueKey(sections[i].id),
             section: sections[i],
             onChanged: (updated) => _updateSection(i, updated),
             onRemove: sections.length > 1 ? () => _removeSection(i) : null,
@@ -101,17 +102,21 @@ class _SectionBlock extends StatelessWidget {
   void _updateLine(int index, EditableLine updated) {
     final lines = List<EditableLine>.from(section.lines);
     lines[index] = updated;
-    onChanged(EditableSection(label: section.label, lines: lines));
+    onChanged(EditableSection(id: section.id, label: section.label, lines: lines));
   }
 
   void _addLine() {
-    onChanged(EditableSection(label: section.label, lines: [...section.lines, EditableLine()]));
+    onChanged(EditableSection(
+      id: section.id,
+      label: section.label,
+      lines: [...section.lines, EditableLine()],
+    ));
   }
 
   void _removeLine(int index) {
     final lines = List<EditableLine>.from(section.lines)..removeAt(index);
     if (lines.isEmpty) lines.add(EditableLine());
-    onChanged(EditableSection(label: section.label, lines: lines));
+    onChanged(EditableSection(id: section.id, label: section.label, lines: lines));
   }
 
   @override
@@ -154,12 +159,16 @@ class _SectionBlock extends StatelessWidget {
               )
             else
               _LineEditor(
-                // Keyed by the line's own object identity, not its list
-                // position — removing a line/section shifts the positions
-                // of the ones after it, and without this key Flutter would
-                // reuse another line's State (and its TextEditingControllers)
-                // by slot, silently showing stale text.
-                key: ObjectKey(section.lines[i]),
+                // Keyed by the line's stable id, not its list position —
+                // removing a line/section shifts the positions of the ones
+                // after it, and without this key Flutter would reuse
+                // another line's State (and its TextEditingControllers) by
+                // slot, silently showing stale text. Not object identity
+                // either: a new EditableLine instance is built on every
+                // edit (see editable_document.dart), so keying by the
+                // object itself would force a full remount — losing focus
+                // and cursor position — on every keystroke.
+                key: ValueKey(section.lines[i].id),
                 line: section.lines[i],
                 onChanged: (updated) => _updateLine(i, updated),
                 onRemove: section.lines.length > 1 ? () => _removeLine(i) : null,
@@ -218,7 +227,7 @@ class _LineEditorState extends State<_LineEditor> {
   void _updateWord(int index, EditableWord word) {
     final words = List<EditableWord>.from(widget.line.words);
     words[index] = word;
-    widget.onChanged(EditableLine(words: words));
+    widget.onChanged(EditableLine(id: widget.line.id, words: words));
   }
 
   void _setWordText(int index, String text) {
@@ -237,13 +246,16 @@ class _LineEditorState extends State<_LineEditor> {
   }
 
   void _addWord() {
-    widget.onChanged(EditableLine(words: [...widget.line.words, EditableWord(text: '')]));
+    widget.onChanged(EditableLine(
+      id: widget.line.id,
+      words: [...widget.line.words, EditableWord(text: '')],
+    ));
   }
 
   void _removeWord(int index) {
     final words = List<EditableWord>.from(widget.line.words)..removeAt(index);
     if (words.isEmpty) words.add(EditableWord(text: ''));
-    widget.onChanged(EditableLine(words: words));
+    widget.onChanged(EditableLine(id: widget.line.id, words: words));
   }
 
   @override

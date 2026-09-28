@@ -16,6 +16,19 @@ class EditableWord {
   bool spaceAfter;
 }
 
+int _nextEditableId = 0;
+
+/// A fresh, process-unique id for a new [EditableLine]/[EditableSection].
+/// The visual editor treats these objects as immutable — every edit builds
+/// a *new* instance rather than mutating the old one — so widget `Key`s
+/// can't be based on object identity (that would change on every
+/// keystroke) or list position (that breaks when a line/section is
+/// removed from the middle). [id] is threaded through every "copy with an
+/// edit applied" call site so the same logical line/section keeps the same
+/// id for its whole lifetime, giving widgets a stable key to reuse
+/// TextEditingController state by.
+int _newEditableId() => _nextEditableId++;
+
 /// One line of lyrics: a sequence of words, each optionally carrying a
 /// chord. A brand new line always has exactly one empty word, so there is
 /// always something to tap or type into.
@@ -26,9 +39,14 @@ class EditableWord {
 /// words, so metadata from an imported or hand-written ChordPro file is
 /// never silently dropped just because it passed through this editor.
 class EditableLine {
-  EditableLine({List<EditableWord>? words, this.rawDirective})
-      : words = words ?? (rawDirective == null ? [EditableWord(text: '')] : const []);
+  EditableLine({List<EditableWord>? words, this.rawDirective, int? id})
+      : id = id ?? _newEditableId(),
+        words = words ?? (rawDirective == null ? [EditableWord(text: '')] : const []);
 
+  /// Stable across edits — see [_newEditableId]. Pass the previous line's
+  /// [id] when constructing an updated copy of it; omit only for a
+  /// genuinely new line.
+  final int id;
   List<EditableWord> words;
   final String? rawDirective;
 }
@@ -36,8 +54,14 @@ class EditableLine {
 /// A section of the song (a verse, chorus, bridge, or an untitled block),
 /// with its own lines. A brand new section always has one empty line.
 class EditableSection {
-  EditableSection({this.label, List<EditableLine>? lines})
-      : lines = lines ?? [EditableLine()];
+  EditableSection({this.label, List<EditableLine>? lines, int? id})
+      : id = id ?? _newEditableId(),
+        lines = lines ?? [EditableLine()];
+
+  /// Stable across edits — see [_newEditableId]. Pass the previous
+  /// section's [id] when constructing an updated copy of it; omit only for
+  /// a genuinely new section.
+  final int id;
 
   /// One of 'verse', 'chorus', 'bridge', 'tag', or null for an untitled
   /// block (used so content the parser couldn't confidently place under a
