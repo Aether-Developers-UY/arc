@@ -12,10 +12,18 @@ class EditableWord {
 /// One line of lyrics: a sequence of words, each optionally carrying a
 /// chord. A brand new line always has exactly one empty word, so there is
 /// always something to tap or type into.
+///
+/// When [rawDirective] is set, this line represents a ChordPro directive
+/// the visual editor doesn't understand (e.g. `{title: ...}`, `{key: ...}`,
+/// `{tempo: ...}`) — it round-trips verbatim instead of being edited as
+/// words, so metadata from an imported or hand-written ChordPro file is
+/// never silently dropped just because it passed through this editor.
 class EditableLine {
-  EditableLine({List<EditableWord>? words}) : words = words ?? [EditableWord(text: '')];
+  EditableLine({List<EditableWord>? words, this.rawDirective})
+      : words = words ?? (rawDirective == null ? [EditableWord(text: '')] : const []);
 
   List<EditableWord> words;
+  final String? rawDirective;
 }
 
 /// A section of the song (a verse, chorus, bridge, or an untitled block),
@@ -31,10 +39,18 @@ class EditableSection {
   List<EditableLine> lines;
 }
 
+/// Matches a whole-line ChordPro directive, e.g. `{title: Sublime Gracia}`
+/// or `{key: G}` — used to tell an unrecognized directive line (which
+/// [ChordProParser] reports identically to a truly blank line: no segments,
+/// no sectionLabel) apart from an actual blank line, so it can be preserved
+/// verbatim instead of silently dropped.
+final _directivePattern = RegExp(r'^\{(\w+)(:.*)?\}$');
+
 /// Converts ChordPro text (as already understood by [ChordProParser]) into
 /// the editable structure the visual editor works on.
 List<EditableSection> parseToEditable(String content) {
   final document = ChordProParser.parse(content);
+  final rawLines = content.split('\n');
   final sections = <EditableSection>[];
   EditableSection? current;
 
@@ -46,7 +62,8 @@ List<EditableSection> parseToEditable(String content) {
     return current!;
   }
 
-  for (final line in document.lines) {
+  for (var i = 0; i < document.lines.length; i++) {
+    final line = document.lines[i];
     if (line.sectionLabel != null && line.segments.isEmpty) {
       current = EditableSection(label: line.sectionLabel, lines: []);
       sections.add(current!);
@@ -54,8 +71,15 @@ List<EditableSection> parseToEditable(String content) {
     }
     final section = ensureCurrent();
     if (line.segments.isEmpty) {
-      // A blank line inside a section — keep it so it round-trips.
-      section.lines.add(EditableLine(words: [EditableWord(text: '')]));
+      final rawLine = i < rawLines.length ? rawLines[i].trim() : '';
+      if (_directivePattern.hasMatch(rawLine)) {
+        // A directive the parser doesn't treat as a section (e.g.
+        // {title:}/{key:}/{tempo:}) — preserve it verbatim.
+        section.lines.add(EditableLine(rawDirective: rawLine));
+      } else {
+        // A truly blank line — keep it so it round-trips.
+        section.lines.add(EditableLine(words: [EditableWord(text: '')]));
+      }
       continue;
     }
     section.lines.add(_segmentsToLine(line.segments));
@@ -106,6 +130,8 @@ String editableToChordPro(List<EditableSection> sections) {
 }
 
 String _lineToChordProText(EditableLine line) {
+  if (line.rawDirective != null) return line.rawDirective!;
+
   final buffer = StringBuffer();
   for (var i = 0; i < line.words.length; i++) {
     final word = line.words[i];

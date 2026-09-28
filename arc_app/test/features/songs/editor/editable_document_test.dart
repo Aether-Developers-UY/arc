@@ -47,6 +47,23 @@ void main() {
       expect(sections.single.lines, isNotEmpty);
     });
 
+    test('preserves metadata directives like {title:} and {key:} verbatim', () {
+      const original = '{title: Sublime Gracia}\n'
+          '{key: G}\n'
+          '{verse}\n'
+          '[G]Sublime [C]gracia\n';
+
+      final sections = parseToEditable(original);
+      final serialized = editableToChordPro(sections);
+
+      expect(serialized, contains('{title: Sublime Gracia}'));
+      expect(serialized, contains('{key: G}'));
+
+      final reparsed = ChordProParser.parse(serialized);
+      final lyricLine = reparsed.lines.firstWhere((l) => l.segments.isNotEmpty);
+      expect(lyricLine.segments.map((s) => s.chord), ['G', 'C']);
+    });
+
     test('a line with no chords round-trips as plain text', () {
       const original = '{verse}\nSolo letra sin acordes\n';
 
