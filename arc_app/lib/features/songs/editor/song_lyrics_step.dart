@@ -50,7 +50,10 @@ class SongLyricsStep extends StatelessWidget {
           ),
         Row(
           children: [
-            OutlinedButton(onPressed: onBack, child: const Text('Atrás')),
+            OutlinedButton(
+              onPressed: isSaving ? null : onBack,
+              child: const Text('Atrás'),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton(

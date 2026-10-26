@@ -95,6 +95,14 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
+  testWidgets('lyrics step disables Atrás while saving', (tester) async {
+    await pump(tester, lyricsStep(isSaving: true));
+
+    final button =
+        tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Atrás'));
+    expect(button.onPressed, isNull);
+  });
+
   testWidgets('lyrics step shows the error message and the Indicaciones field',
       (tester) async {
     await pump(tester, lyricsStep(errorMessage: 'No se pudo guardar'));

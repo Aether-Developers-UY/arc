@@ -1,21 +1,46 @@
+import 'dart:async';
+
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/songs/song.dart';
 import 'package:arc_app/features/songs/song_editor_screen.dart';
+import 'package:arc_app/features/songs/song_list_provider.dart';
+import 'package:arc_app/features/songs/song_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Finder field(String label) => find.widgetWithText(TextField, label);
 
+/// A repository whose `create` never completes, so a save stays in flight.
+class _PendingSaveRepository implements SongRepository {
+  int createCalls = 0;
+
+  @override
+  Future<Song> create(Song song) {
+    createCalls++;
+    return Completer<Song>().future;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 /// Opens the editor on top of a host route, so system back has somewhere to
 /// go if the editor ever pops itself.
-Future<void> openEditor(WidgetTester tester, {Song? existingSong}) async {
+Future<void> openEditor(
+  WidgetTester tester, {
+  Song? existingSong,
+  SongRepository? repository,
+}) async {
   tester.view.physicalSize = const Size(800, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [
+        if (repository != null) songRepositoryProvider.overrideWithValue(repository),
+      ],
       child: MaterialApp(
         theme: ArcaTheme.light(),
         home: Builder(
@@ -154,6 +179,37 @@ void main() {
 
     expect(find.byType(SongEditorScreen), findsOneWidget);
     expect(find.text('Paso 1 de 2'), findsOneWidget);
+  });
+
+  testWidgets('typed lyrics survive going back to step 1 and forward again',
+      (tester) async {
+    await openEditor(tester);
+
+    await tester.enterText(field('Título *'), 'Mi canción');
+    await next(tester);
+    await tester.enterText(find.byType(TextField).first, 'Cantaré');
+    await tester.tap(find.text('Atrás'));
+    await tester.pumpAndSettle();
+    await next(tester);
+
+    expect(find.text('Cantaré'), findsOneWidget);
+  });
+
+  testWidgets('system back is ignored on step 2 while a save is in flight',
+      (tester) async {
+    final repository = _PendingSaveRepository();
+    await openEditor(tester, repository: repository);
+
+    await tester.enterText(field('Título *'), 'Mi canción');
+    await next(tester);
+    await tester.tap(find.text('Guardar'));
+    await tester.pump();
+    expect(repository.createCalls, 1);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(find.text('Paso 2 de 2'), findsOneWidget);
   });
 
   testWidgets('system back on step 1 closes the editor', (tester) async {

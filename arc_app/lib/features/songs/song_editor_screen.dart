@@ -155,7 +155,9 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
     return PopScope(
       canPop: _step == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _goBack();
+        // Stay on step 2 while a save is in flight, so its error can't
+        // surface on step 1 and the title can't change under it.
+        if (!didPop && !_isSaving) _goBack();
       },
       child: Scaffold(
         appBar: AppBar(
