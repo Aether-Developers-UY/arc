@@ -2,9 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/content_frame.dart';
 import 'editor/editable_document.dart';
-import 'editor/song_lyrics_editor.dart';
+import 'editor/song_lyrics_step.dart';
+import 'editor/song_metadata_step.dart';
 import 'song.dart';
 import 'song_list_provider.dart';
 
@@ -42,6 +44,9 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
   bool _isSaving = false;
   String? _errorMessage;
 
+  /// 0 = metadata, 1 = lyrics. Nothing is persisted until "Guardar" on 1.
+  int _step = 0;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -53,13 +58,44 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  /// Returns a user-facing message for the first invalid step 1 field, or
+  /// null when the metadata is valid.
+  String? _validateMetadata() {
+    if (_titleController.text.trim().isEmpty) return 'Ingresá el título de la canción.';
+    if (_keyController.text.trim().isEmpty) return 'Ingresá la tonalidad.';
     final rawTempo = _tempoController.text.trim();
-    final tempo = rawTempo.isEmpty ? null : int.tryParse(rawTempo);
-    if (rawTempo.isNotEmpty && tempo == null) {
-      setState(() => _errorMessage = 'El tempo debe ser un número (BPM).');
+    if (rawTempo.isNotEmpty && int.tryParse(rawTempo) == null) {
+      return 'El tempo debe ser un número (BPM).';
+    }
+    return null;
+  }
+
+  void _goNext() {
+    final error = _validateMetadata();
+    setState(() {
+      _errorMessage = error;
+      if (error == null) _step = 1;
+    });
+  }
+
+  void _goBack() {
+    setState(() {
+      _step = 0;
+      _errorMessage = null;
+    });
+  }
+
+  Future<void> _save() async {
+    final error = _validateMetadata();
+    if (error != null) {
+      setState(() {
+        _step = 0;
+        _errorMessage = error;
+      });
       return;
     }
+    final rawTempo = _tempoController.text.trim();
+    final tempo = rawTempo.isEmpty ? null : int.tryParse(rawTempo);
 
     setState(() {
       _isSaving = true;
@@ -116,81 +152,51 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.existingSong != null;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Editar canción' : 'Nueva canción')),
-      body: ContentFrame(
-        maxWidth: 640,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Título *'),
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isEditing ? 'Editar canción' : 'Nueva canción'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(24),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Paso ${_step + 1} de 2',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: context.arca.textSecondary),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _artistController,
-                decoration: const InputDecoration(labelText: 'Artista'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _keyController,
-                      decoration: const InputDecoration(labelText: 'Tonalidad *'),
-                    ),
+            ),
+          ),
+        ),
+        body: ContentFrame(
+          maxWidth: 640,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: _step == 0
+                ? SongMetadataStep(
+                    titleController: _titleController,
+                    artistController: _artistController,
+                    keyController: _keyController,
+                    tempoController: _tempoController,
+                    timeSignatureController: _timeSignatureController,
+                    errorMessage: _errorMessage,
+                    onNext: _goNext,
+                  )
+                : SongLyricsStep(
+                    sections: _lyricsSections,
+                    onSectionsChanged: (updated) => setState(() => _lyricsSections = updated),
+                    notesController: _notesController,
+                    isSaving: _isSaving,
+                    errorMessage: _errorMessage,
+                    onBack: _goBack,
+                    onSave: _save,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _tempoController,
-                      decoration: const InputDecoration(labelText: 'Tempo (BPM)'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _timeSignatureController,
-                decoration: const InputDecoration(labelText: 'Compás (ej: 4/4)'),
-              ),
-              const SizedBox(height: 20),
-              Text('Letra y acordes', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
-              SongLyricsEditor(
-                sections: _lyricsSections,
-                onChanged: (updated) => setState(() => _lyricsSections = updated),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _notesController,
-                decoration: const InputDecoration(labelText: 'Indicaciones'),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                ),
-              FilledButton(
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Guardar'),
-              ),
-            ],
           ),
         ),
       ),
