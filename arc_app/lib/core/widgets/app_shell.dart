@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/auth_provider.dart';
+import '../../features/home/home_screen.dart';
+import '../../features/home/setlist_detail_provider.dart';
 import '../../features/setlists/setlist_list_screen.dart';
 import '../../features/songs/song_list_screen.dart';
 import '../layout.dart';
@@ -16,6 +18,7 @@ class _Destination {
 }
 
 const _destinations = [
+  _Destination('Inicio', Icons.home_outlined, Icons.home),
   _Destination('Canciones', Icons.library_music_outlined, Icons.library_music),
   _Destination('Setlists', Icons.event_note_outlined, Icons.event_note),
 ];
@@ -32,11 +35,22 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _logout() => ref.read(authProvider.notifier).logout();
 
+  void _select(int index) {
+    setState(() => _index = index);
+    // Inicio stays alive in the IndexedStack; refetch its pinned setlists
+    // so edits made in the other tabs show up when coming back.
+    if (index == 0) ref.invalidate(setlistDetailProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final body = IndexedStack(
       index: _index,
-      children: const [SongListScreen(), SetlistListScreen()],
+      children: [
+        HomeScreen(onOpenSongs: () => _select(1), onOpenSetlists: () => _select(2)),
+        const SongListScreen(),
+        const SetlistListScreen(),
+      ],
     );
 
     if (isWide(context)) {
@@ -45,7 +59,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           children: [
             _Sidebar(
               selectedIndex: _index,
-              onSelect: (i) => setState(() => _index = i),
+              onSelect: _select,
               onLogout: _logout,
               userName: ref.watch(authProvider).user?.name,
             ),
@@ -71,7 +85,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: body,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _select,
         destinations: [
           for (final d in _destinations)
             NavigationDestination(
@@ -178,11 +192,14 @@ class _SidebarItem extends StatelessWidget {
                 Icon(selected ? destination.selectedIcon : destination.icon,
                     color: color, size: 22),
                 const SizedBox(width: 12),
-                Text(
-                  destination.label,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    destination.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
