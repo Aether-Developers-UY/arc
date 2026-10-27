@@ -1,0 +1,226 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/layout.dart';
+import '../../core/theme/arca_tokens.dart';
+import '../../core/widgets/arca_card.dart';
+import '../../core/widgets/content_frame.dart';
+import '../../core/widgets/page_header.dart';
+import 'pin_setlist_sheet.dart';
+import 'pinned_setlist_card.dart';
+import 'pinned_setlists_provider.dart';
+
+/// Inicio: the setlists pinned on this device, shortcuts to the library
+/// and the setlists, and room for future sections.
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key, required this.onOpenSongs, required this.onOpenSetlists});
+
+  final VoidCallback onOpenSongs;
+  final VoidCallback onOpenSetlists;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wide = isWide(context);
+    final shortcuts = [
+      _ShortcutCard(
+        icon: Icons.library_music_outlined,
+        label: 'Biblioteca de canciones',
+        onTap: onOpenSongs,
+      ),
+      _ShortcutCard(
+        icon: Icons.event_note_outlined,
+        label: 'Todos los setlists',
+        onTap: onOpenSetlists,
+      ),
+      const _ShortcutCard(icon: Icons.auto_awesome_outlined, label: 'Próximamente', muted: true),
+    ];
+
+    return ContentFrame(
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          const PageHeader(title: 'Inicio', subtitle: 'Tus cultos a mano'),
+          Text('Fijados', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          ref.watch(pinnedSetlistsProvider).when(
+                // Never show the empty state before the stored ids are read.
+                loading: () => const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => const _EmptyPins(),
+                data: (ids) => ids.isEmpty ? const _EmptyPins() : _PinnedRow(ids: ids, wide: wide),
+              ),
+          const SizedBox(height: 28),
+          if (wide)
+            Row(
+              children: [
+                for (var i = 0; i < shortcuts.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  Expanded(child: shortcuts[i]),
+                ],
+              ],
+            )
+          else
+            for (final shortcut in shortcuts)
+              Padding(padding: const EdgeInsets.only(bottom: 10), child: shortcut),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinnedRow extends StatelessWidget {
+  const _PinnedRow({required this.ids, required this.wide});
+
+  final List<int> ids;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final blocks = <Widget>[
+      for (final id in ids) PinnedSetlistCard(key: ValueKey(id), setlistId: id),
+      if (ids.length < kMaxPinnedSetlists) const _AddPinBlock(),
+    ];
+
+    if (wide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < kMaxPinnedSetlists; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            // Empty slots keep each block at a third of the row.
+            Expanded(child: i < blocks.length ? blocks[i] : const SizedBox()),
+          ],
+        ],
+      );
+    }
+
+    // On phones the row scrolls sideways, with the next block peeking in.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final blockWidth = constraints.maxWidth * 0.7;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < blocks.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                SizedBox(width: blockWidth, child: blocks[i]),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AddPinBlock extends StatelessWidget {
+  const _AddPinBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return _OutlinedBlock(
+      onTap: () => showPinSetlistSheet(context),
+      child: SizedBox(
+        height: 120,
+        child: Center(
+          child: Text(
+            '+ Fijar setlist',
+            style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyPins extends StatelessWidget {
+  const _EmptyPins();
+
+  @override
+  Widget build(BuildContext context) {
+    return _OutlinedBlock(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          children: [
+            Icon(Icons.push_pin_outlined, color: context.arca.textSecondary),
+            const SizedBox(height: 8),
+            Text(
+              'Todavía no elegiste un culto',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => showPinSetlistSheet(context),
+              child: const Text('Elegir setlist'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A transparent, outlined block for placeholders (no pins, add, coming soon).
+class _OutlinedBlock extends StatelessWidget {
+  const _OutlinedBlock({required this.child, this.onTap});
+
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(16);
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: context.arca.border, width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: child),
+    );
+  }
+}
+
+class _ShortcutCard extends StatelessWidget {
+  const _ShortcutCard({required this.icon, required this.label, this.onTap, this.muted = false});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = muted ? context.arca.textSecondary : Theme.of(context).colorScheme.primary;
+    final content = Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: muted ? context.arca.textSecondary : null,
+            ),
+          ),
+        ),
+        if (!muted) Icon(Icons.chevron_right, color: context.arca.textSecondary),
+      ],
+    );
+    if (muted) {
+      return _OutlinedBlock(
+        child: Padding(padding: const EdgeInsets.all(16), child: content),
+      );
+    }
+    return ArcaCard(onTap: onTap, child: content);
+  }
+}
