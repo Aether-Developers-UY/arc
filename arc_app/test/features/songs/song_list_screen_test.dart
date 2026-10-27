@@ -17,11 +17,14 @@ class _TwoSongs extends SongListNotifier {
           title: 'Sublime Gracia',
           artist: 'John Newton',
           originalKey: 'G',
-          tempo: null,
-          timeSignature: null,
+          tempo: 80,
+          timeSignature: '3/4',
           content: '',
           notes: null,
-          attachments: const [],
+          attachments: [
+            Attachment(id: 1, type: 'audio', originalName: 'ref.mp3', filePath: 'a/ref.mp3'),
+            Attachment(id: 2, type: 'pdf', originalName: 'tab.pdf', filePath: 'a/tab.pdf'),
+          ],
         ),
         Song(
           id: 2,
@@ -92,6 +95,22 @@ void main() {
     expect(find.text('John Newton'), findsOneWidget);
     expect(find.text('G'), findsOneWidget);
     expect(find.text('Digno'), findsOneWidget);
+  });
+
+  testWidgets('a block shows tempo and time signature when the song has them',
+      (tester) async {
+    await pumpSongs(tester);
+
+    expect(find.text('80 BPM · 3/4'), findsOneWidget);
+    // Digno has neither, so it gets no meta line at all.
+    expect(find.textContaining('BPM'), findsOneWidget);
+  });
+
+  testWidgets('a block flags audio and PDF attachments', (tester) async {
+    await pumpSongs(tester);
+
+    expect(find.byTooltip('Tiene audio'), findsOneWidget);
+    expect(find.byTooltip('Tiene PDF'), findsOneWidget);
   });
 
   testWidgets('switching back to Bloques shows the grid again', (tester) async {

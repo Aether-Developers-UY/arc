@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/arca_theme.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
@@ -98,7 +99,7 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                               padding: const EdgeInsets.only(bottom: 24),
                               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 260,
-                                mainAxisExtent: 132,
+                                mainAxisExtent: 168,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                               ),
@@ -172,7 +173,10 @@ class _SongRow extends StatelessWidget {
   }
 }
 
-/// A rectangular block for the grid: key on top, title and artist below.
+/// A rectangular block for the grid. Mirrors the setlist cards: the key sits
+/// in a tinted tile (like the setlist date), with the reference files the
+/// song carries flagged beside it; title and artist follow, and tempo and
+/// time signature close the block when the song has them.
 class _SongBlock extends StatelessWidget {
   const _SongBlock({required this.song});
 
@@ -180,17 +184,46 @@ class _SongBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final hasAudio = song.attachments.any((a) => a.type == 'audio');
+    final hasPdf = song.attachments.any((a) => a.type == 'pdf');
+    final meta = [
+      if (song.tempo != null) '${song.tempo} BPM',
+      if (song.timeSignature?.isNotEmpty == true) song.timeSignature!,
+    ].join(' · ');
+
     return ArcaCard(
       onTap: () => _openSong(context, song),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.music_note_outlined, size: 20, color: context.arca.textSecondary),
+              Container(
+                constraints: const BoxConstraints(minWidth: 44),
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  song.originalKey,
+                  style: ArcaTheme.mono(
+                    TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+              ),
               const Spacer(),
-              KeyBadge(song.originalKey),
+              if (hasAudio) const _AttachmentFlag(Icons.headphones_outlined, 'Tiene audio'),
+              if (hasPdf) const _AttachmentFlag(Icons.picture_as_pdf_outlined, 'Tiene PDF'),
             ],
           ),
           const Spacer(),
@@ -206,10 +239,41 @@ class _SongBlock extends StatelessWidget {
               song.artist!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: text.bodySmall?.copyWith(color: context.arca.textSecondary),
+              style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
+            ),
+          ],
+          if (meta.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              meta,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: text.labelSmall?.copyWith(
+                color: context.arca.textSecondary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _AttachmentFlag extends StatelessWidget {
+  const _AttachmentFlag(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Icon(icon, size: 18, color: context.arca.textSecondary),
       ),
     );
   }
