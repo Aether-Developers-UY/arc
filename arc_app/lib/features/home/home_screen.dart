@@ -48,8 +48,10 @@ class HomeScreen extends ConsumerWidget {
                   height: 120,
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (_, _) => const _EmptyPins(),
-                data: (ids) => ids.isEmpty ? const _EmptyPins() : _PinnedRow(ids: ids, wide: wide),
+                error: (_, _) => _EmptyPins(onOpenSetlists: onOpenSetlists),
+                data: (ids) => ids.isEmpty
+                    ? _EmptyPins(onOpenSetlists: onOpenSetlists)
+                    : _PinnedRow(ids: ids, wide: wide, onOpenSetlists: onOpenSetlists),
               ),
           const SizedBox(height: 28),
           if (wide)
@@ -71,16 +73,17 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _PinnedRow extends StatelessWidget {
-  const _PinnedRow({required this.ids, required this.wide});
+  const _PinnedRow({required this.ids, required this.wide, required this.onOpenSetlists});
 
   final List<int> ids;
   final bool wide;
+  final VoidCallback onOpenSetlists;
 
   @override
   Widget build(BuildContext context) {
     final blocks = <Widget>[
       for (final id in ids) PinnedSetlistCard(key: ValueKey(id), setlistId: id),
-      if (ids.length < kMaxPinnedSetlists) const _AddPinBlock(),
+      if (ids.length < kMaxPinnedSetlists) _AddPinBlock(onOpenSetlists: onOpenSetlists),
     ];
 
     if (wide) {
@@ -118,13 +121,15 @@ class _PinnedRow extends StatelessWidget {
 }
 
 class _AddPinBlock extends StatelessWidget {
-  const _AddPinBlock();
+  const _AddPinBlock({required this.onOpenSetlists});
+
+  final VoidCallback onOpenSetlists;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return _OutlinedBlock(
-      onTap: () => showPinSetlistSheet(context),
+      onTap: () => showPinSetlistSheet(context, onOpenSetlists: onOpenSetlists),
       child: SizedBox(
         height: 120,
         child: Center(
@@ -139,7 +144,9 @@ class _AddPinBlock extends StatelessWidget {
 }
 
 class _EmptyPins extends StatelessWidget {
-  const _EmptyPins();
+  const _EmptyPins({required this.onOpenSetlists});
+
+  final VoidCallback onOpenSetlists;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +164,7 @@ class _EmptyPins extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => showPinSetlistSheet(context),
+              onPressed: () => showPinSetlistSheet(context, onOpenSetlists: onOpenSetlists),
               child: const Text('Elegir setlist'),
             ),
           ],

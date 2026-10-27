@@ -1,6 +1,7 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/home/home_screen.dart';
 import 'package:arc_app/features/home/pinned_setlist_card.dart';
+import 'package:arc_app/features/home/pinned_setlists_provider.dart';
 import 'package:arc_app/features/setlists/setlist_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ Future<void> pumpHome(
   List<int> existing = const [],
   Size size = const Size(1200, 1000),
   bool settle = true,
+  Map<int, Object> failing = const {},
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -30,7 +32,7 @@ Future<void> pumpHome(
   final repository = FakeSetlistRepository([
     for (final id in existing)
       sampleSetlist(id: id, name: 'Culto $id', date: DateTime(2026, 11, id)),
-  ]);
+  ])..errors.addAll(failing);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -122,6 +124,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Primero creá un setlist en la pestaña Setlists.'), findsOneWidget);
+
+    await tester.tap(find.text('Ir a Setlists'));
+    await tester.pumpAndSettle();
+
+    expect(setlistsTaps, 1);
+    expect(find.byType(BottomSheet), findsNothing);
+  });
+
+  testWidgets('two pinned setlists answering 404 at once are both unpinned', (tester) async {
+    await pumpHome(tester, pinned: [1, 2, 3], existing: [1]);
+
+    final container = ProviderScope.containerOf(tester.element(find.byType(HomeScreen)));
+    expect(container.read(pinnedSetlistsProvider).value, [1]);
+    expect(find.byType(PinnedSetlistCard), findsOneWidget);
+  });
+
+  testWidgets('a failing block does not break the others', (tester) async {
+    await pumpHome(tester, pinned: [1, 2, 3], existing: [1, 2], failing: {2: httpError(500)});
+
+    final container = ProviderScope.containerOf(tester.element(find.byType(HomeScreen)));
+    expect(find.text('Culto 1'), findsOneWidget);
+    expect(find.text('No se pudo cargar'), findsOneWidget);
+    expect(container.read(pinnedSetlistsProvider).value, [1, 2]);
   });
 
   testWidgets('the sheet explains when every setlist is already pinned', (tester) async {

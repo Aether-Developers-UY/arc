@@ -26,14 +26,19 @@ class PinnedSetlistsNotifier extends AsyncNotifier<List<int>> {
     return ids;
   }
 
+  // Both mutations read `state` after awaiting the initial load, not the
+  // awaited value: calls queued in the same turn (two 404s at once) would
+  // otherwise all start from the same list and overwrite each other.
   Future<void> pin(int id) async {
-    final current = await future;
+    await future;
+    final current = state.requireValue;
     if (current.contains(id) || current.length >= kMaxPinnedSetlists) return;
     await _save([...current, id]);
   }
 
   Future<void> unpin(int id) async {
-    final current = await future;
+    await future;
+    final current = state.requireValue;
     if (!current.contains(id)) return;
     await _save(current.where((pinned) => pinned != id).toList());
   }

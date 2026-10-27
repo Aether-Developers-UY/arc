@@ -7,18 +7,21 @@ import '../setlists/setlist_list_provider.dart';
 import 'pinned_setlists_provider.dart';
 
 /// Lets the user pick a setlist to pin to Inicio, newest first, leaving out
-/// the ones already pinned.
-Future<void> showPinSetlistSheet(BuildContext context) {
+/// the ones already pinned. [onOpenSetlists] switches to the Setlists tab
+/// when there is nothing to pin yet.
+Future<void> showPinSetlistSheet(BuildContext context, {required VoidCallback onOpenSetlists}) {
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => const _PinSetlistSheet(),
+    builder: (_) => _PinSetlistSheet(onOpenSetlists: onOpenSetlists),
   );
 }
 
 class _PinSetlistSheet extends ConsumerWidget {
-  const _PinSetlistSheet();
+  const _PinSetlistSheet({required this.onOpenSetlists});
+
+  final VoidCallback onOpenSetlists;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,7 +47,22 @@ class _PinSetlistSheet extends ConsumerWidget {
               error: (_, _) => const _SheetMessage('No se pudieron cargar los setlists'),
               data: (setlists) {
                 if (setlists.isEmpty) {
-                  return const _SheetMessage('Primero creá un setlist en la pestaña Setlists.');
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _SheetMessage('Primero creá un setlist en la pestaña Setlists.'),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onOpenSetlists();
+                          },
+                          child: const Text('Ir a Setlists'),
+                        ),
+                      ),
+                    ],
+                  );
                 }
                 final available = setlists.where((s) => !pinned.contains(s.id)).toList()
                   ..sort((a, b) => b.serviceDate.compareTo(a.serviceDate));
