@@ -26,6 +26,16 @@ class FakeSetlistRepository implements SetlistRepository {
     return setlist;
   }
 
+  final List<int> deleted = [];
+  bool failDelete = false;
+
+  @override
+  Future<void> delete(int id) async {
+    if (failDelete) throw networkError();
+    deleted.add(id);
+    setlists.remove(id);
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

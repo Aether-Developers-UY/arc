@@ -6,6 +6,7 @@ import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/key_badge.dart';
+import '../home/pinned_setlists_provider.dart';
 import '../songs/song.dart';
 import '../songs/song_detail_screen.dart';
 import '../songs/song_list_provider.dart';
@@ -150,6 +151,49 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     if (mounted) await _reloadSilently();
   }
 
+  Future<void> _confirmDelete(Setlist setlist, String title) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('¿Eliminar «$title»?'),
+        content: const Text(
+          'Las canciones siguen en la biblioteca; solo se borra este setlist. '
+          'No se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isMutating = true);
+    try {
+      await ref.read(setlistRepositoryProvider).delete(setlist.id);
+      // Drop it from Inicio now instead of waiting for the pinned block's 404.
+      await ref.read(pinnedSetlistsProvider.notifier).unpin(setlist.id);
+      // The opener (Setlists list or Inicio) reloads when this route pops.
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isMutating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo eliminar el setlist.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final setlist = _setlist;
@@ -162,7 +206,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         : '${weekdayName(setlist.serviceDate)} · ${shortDate(setlist.serviceDate)}';
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          if (setlist != null)
+            IconButton(
+              tooltip: 'Eliminar setlist',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _isMutating ? null : () => _confirmDelete(setlist, title),
+            ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : setlist == null
