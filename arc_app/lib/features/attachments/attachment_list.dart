@@ -124,8 +124,13 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
       children: [
         Row(
           children: [
-            Text('Archivos adjuntos', style: Theme.of(context).textTheme.titleMedium),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                'Archivos adjuntos',
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             IconButton(
               icon: _isUploading
                   ? const SizedBox(

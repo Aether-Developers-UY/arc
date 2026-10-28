@@ -136,8 +136,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
   /// list — not the full song (content, tempo, attachments). Navigate to a
   /// loader that fetches the real song before handing off to
   /// SongDetailScreen, passing this setlist's chosen key as the initial key.
-  void _openSong(SetlistSong setlistSong) {
-    Navigator.of(context).push(
+  Future<void> _openSong(SetlistSong setlistSong) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => _SongFromSetlistLoader(
           songId: setlistSong.songId,
@@ -145,6 +145,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         ),
       ),
     );
+    // The song may have been edited or deleted meanwhile; a deleted song
+    // also leaves this setlist, so re-sync before showing it again.
+    if (mounted) await _reloadSilently();
   }
 
   @override

@@ -51,6 +51,50 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
     }
   }
 
+  bool _isDeleting = false;
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('¿Eliminar «${_song.title}»?'),
+        content: const Text(
+          'También se borran sus archivos adjuntos y se quita de los setlists '
+          'donde esté. No se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await ref.read(songRepositoryProvider).delete(_song.id);
+      await ref.read(songListProvider.notifier).refresh();
+      // `true` tells the opener the song is gone, so it can reload.
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo eliminar la canción.')),
+      );
+    }
+  }
+
   String? get _metaLine {
     final parts = <String>[
       if (_song.artist?.isNotEmpty == true) _song.artist!,
@@ -141,6 +185,11 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => SongEditorScreen(existingSong: _song)),
             ),
+          ),
+          IconButton(
+            tooltip: 'Eliminar canción',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _isDeleting ? null : _confirmDelete,
           ),
         ],
       ),
