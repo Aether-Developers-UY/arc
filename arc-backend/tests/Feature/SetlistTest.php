@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Setlist;
+use App\Models\SetlistSong;
+use App\Models\Song;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,6 +29,22 @@ class SetlistTest extends TestCase
         $response->assertOk();
         $dates = collect($response->json('data'))->pluck('service_date')->all();
         $this->assertSame(['2026-09-20', '2026-10-01'], $dates);
+    }
+
+    public function test_the_setlist_list_includes_each_setlists_songs_in_order(): void
+    {
+        $user = User::factory()->create();
+        $setlist = Setlist::factory()->create(['created_by' => $user->id]);
+        $second = Song::factory()->create(['title' => 'Digno', 'created_by' => $user->id]);
+        $first = Song::factory()->create(['title' => 'Sublime Gracia', 'created_by' => $user->id]);
+        SetlistSong::factory()->create(['setlist_id' => $setlist->id, 'song_id' => $second->id, 'position' => 1]);
+        SetlistSong::factory()->create(['setlist_id' => $setlist->id, 'song_id' => $first->id, 'position' => 0]);
+
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/setlists');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.setlist_songs.0.song.title', 'Sublime Gracia')
+            ->assertJsonPath('data.0.setlist_songs.1.song.title', 'Digno');
     }
 
     public function test_an_authenticated_user_can_create_a_setlist(): void

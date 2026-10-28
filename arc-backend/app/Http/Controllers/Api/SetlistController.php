@@ -12,7 +12,11 @@ class SetlistController extends Controller
 {
     public function index(Request $request)
     {
-        $setlists = Setlist::query()->orderBy('service_date')->get();
+        // Songs come along so the list can preview them (blocks, Inicio).
+        $setlists = Setlist::query()
+            ->with('setlistSongs.song')
+            ->orderBy('service_date')
+            ->get();
 
         return response()->json(['data' => $setlists]);
     }
