@@ -7,6 +7,7 @@ use App\Http\Requests\StoreSongRequest;
 use App\Http\Requests\UpdateSongRequest;
 use App\Models\Song;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class SongController extends Controller
 {
@@ -50,6 +51,10 @@ class SongController extends Controller
 
     public function destroy(Song $song)
     {
+        // The database cascades the attachment rows, but not the stored
+        // files: remove those first so they don't pile up orphaned.
+        Storage::disk('public')->delete($song->attachments()->pluck('file_path')->all());
+
         $song->delete();
 
         return response()->noContent();

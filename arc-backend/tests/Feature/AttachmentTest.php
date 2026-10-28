@@ -37,6 +37,22 @@ class AttachmentTest extends TestCase
         Storage::disk('public')->assertExists(Attachment::first()->file_path);
     }
 
+    public function test_deleting_a_song_also_deletes_its_attachment_files(): void
+    {
+        $user = User::factory()->create();
+        $song = Song::factory()->create(['created_by' => $user->id]);
+        $this->actingAs($user, 'sanctum')->postJson("/api/songs/{$song->id}/attachments", [
+            'type' => 'audio',
+            'file' => UploadedFile::fake()->create('pista.mp3', 100, 'audio/mpeg'),
+        ])->assertCreated();
+        $path = Attachment::first()->file_path;
+
+        $this->actingAs($user, 'sanctum')->deleteJson("/api/songs/{$song->id}")->assertNoContent();
+
+        Storage::disk('public')->assertMissing($path);
+        $this->assertDatabaseMissing('attachments', ['song_id' => $song->id]);
+    }
+
     public function test_uploading_an_attachment_fails_when_the_file_is_too_large(): void
     {
         $user = User::factory()->create();
