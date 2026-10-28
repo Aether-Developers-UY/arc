@@ -3,15 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/arca_theme.dart';
 import '../../core/theme/arca_tokens.dart';
+import '../../core/view_mode.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/key_badge.dart';
 import '../../core/widgets/page_header.dart';
+import '../../core/widgets/view_mode_toggle.dart';
 import 'song_detail_screen.dart';
 import 'song_editor_screen.dart';
 import 'song.dart';
 import 'song_list_provider.dart';
-import 'song_view_mode_provider.dart';
+
+const _viewModeKey = 'song_list_view';
 
 class SongListScreen extends ConsumerStatefulWidget {
   const SongListScreen({super.key});
@@ -32,7 +35,7 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
   @override
   Widget build(BuildContext context) {
     final songsAsync = ref.watch(songListProvider);
-    final viewMode = ref.watch(songViewModeProvider).value ?? SongViewMode.grid;
+    final viewMode = ref.watch(viewModeProvider(_viewModeKey)).value ?? ViewMode.grid;
 
     return ContentFrame(
       child: Column(
@@ -63,24 +66,7 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              SegmentedButton<SongViewMode>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: SongViewMode.grid,
-                    icon: Icon(Icons.grid_view),
-                    tooltip: 'Bloques',
-                  ),
-                  ButtonSegment(
-                    value: SongViewMode.list,
-                    icon: Icon(Icons.view_agenda_outlined),
-                    tooltip: 'Lista',
-                  ),
-                ],
-                selected: {viewMode},
-                onSelectionChanged: (selection) =>
-                    ref.read(songViewModeProvider.notifier).set(selection.first),
-              ),
+              const ViewModeToggle(prefsKey: _viewModeKey),
             ],
           ),
           const SizedBox(height: 16),
@@ -94,7 +80,7 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                     )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(songListProvider.notifier).refresh(),
-                      child: viewMode == SongViewMode.grid
+                      child: viewMode == ViewMode.grid
                           ? GridView.builder(
                               padding: const EdgeInsets.only(bottom: 24),
                               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(

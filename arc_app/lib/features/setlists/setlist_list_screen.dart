@@ -5,11 +5,16 @@ import '../../core/format/date_format.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
+import '../../core/view_mode.dart';
 import '../../core/widgets/page_header.dart';
+import '../../core/widgets/view_mode_toggle.dart';
 import 'setlist.dart';
+import 'setlist_block.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_editor_screen.dart';
 import 'setlist_list_provider.dart';
+
+const _viewModeKey = 'setlist_list_view';
 
 class SetlistListScreen extends ConsumerWidget {
   const SetlistListScreen({super.key});
@@ -17,6 +22,7 @@ class SetlistListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final setlistsAsync = ref.watch(setlistListProvider);
+    final viewMode = ref.watch(viewModeProvider(_viewModeKey)).value ?? ViewMode.grid;
 
     return ContentFrame(
       child: Column(
@@ -28,11 +34,16 @@ class SetlistListScreen extends ConsumerWidget {
             trailing: FilledButton.icon(
               icon: const Icon(Icons.add),
               label: const Text('Nuevo setlist'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SetlistEditorScreen()),
-              ),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SetlistEditorScreen())),
             ),
           ),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: ViewModeToggle(prefsKey: _viewModeKey),
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: setlistsAsync.when(
               data: (setlists) => setlists.isEmpty
@@ -43,12 +54,32 @@ class SetlistListScreen extends ConsumerWidget {
                     )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(setlistListProvider.notifier).refresh(),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        itemCount: setlists.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) => _SetlistCard(setlist: setlists[index]),
-                      ),
+                      child: viewMode == ViewMode.grid
+                          ? GridView.builder(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              // Fits the date row, name, three songs and the
+                              // total, like the pinned blocks in Inicio.
+                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 380,
+                                mainAxisExtent: 204,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                              itemCount: setlists.length,
+                              itemBuilder: (context, index) => SetlistBlock(
+                                setlist: setlists[index],
+                                onTap: () => _openSetlist(context, ref, setlists[index].id),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              itemCount: setlists.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) => _SetlistCard(
+                                setlist: setlists[index],
+                                onTap: () => _openSetlist(context, ref, setlists[index].id),
+                              ),
+                            ),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => const _EmptyState(
@@ -64,10 +95,20 @@ class SetlistListScreen extends ConsumerWidget {
   }
 }
 
+Future<void> _openSetlist(BuildContext context, WidgetRef ref, int setlistId) async {
+  await Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => SetlistDetailScreen(setlistId: setlistId)));
+  // Songs may have been added, removed or reordered inside; invalidate (not
+  // refresh) so the current blocks stay on screen while the list reloads.
+  ref.invalidate(setlistListProvider);
+}
+
 class _SetlistCard extends StatelessWidget {
-  const _SetlistCard({required this.setlist});
+  const _SetlistCard({required this.setlist, required this.onTap});
 
   final Setlist setlist;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -77,9 +118,7 @@ class _SetlistCard extends StatelessWidget {
     final hasName = setlist.name?.isNotEmpty == true;
 
     return ArcaCard(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SetlistDetailScreen(setlistId: setlist.id)),
-      ),
+      onTap: onTap,
       child: Row(
         children: [
           Container(
@@ -150,10 +189,9 @@ class _EmptyState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: context.arca.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: context.arca.textSecondary),
           ),
         ],
       ),
