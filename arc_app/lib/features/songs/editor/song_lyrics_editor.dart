@@ -131,7 +131,7 @@ class _SectionCardState extends State<_SectionCard> {
   late final _controller = TextEditingController(text: sectionText(widget.section));
 
   EditableSection get _section => widget.section;
-  bool get _chordOnly => isChordOnlySection(_section.label);
+  bool get _chordOnly => editsAsChords(_section);
 
   @override
   void didUpdateWidget(covariant _SectionCard oldWidget) {
@@ -148,7 +148,7 @@ class _SectionCardState extends State<_SectionCard> {
   }
 
   Future<void> _confirmRemove() async {
-    if (sectionText(_section).trim().isEmpty) {
+    if (isSectionEmpty(_section)) {
       widget.onRemove!();
       return;
     }
@@ -263,7 +263,7 @@ class _SectionCardState extends State<_SectionCard> {
     final secondary = Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: context.arca.textSecondary,
         );
-    if (sectionText(_section).trim().isEmpty) {
+    if (isSectionEmpty(_section)) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(

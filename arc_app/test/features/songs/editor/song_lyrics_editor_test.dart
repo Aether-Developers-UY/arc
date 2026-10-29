@@ -201,4 +201,27 @@ void main() {
 
     expect(find.text('Sublime gracia del Señor'), findsOneWidget);
   });
+
+  testWidgets('a section with only chords is not empty: removing it asks first',
+      (tester) async {
+    await pumpEditor(tester, '{verse}\nUno\n{chorus}\n[G]  [D]', LyricsMode.lyrics);
+
+    await tester.tap(find.byTooltip('Quitar sección').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Quitar este Coro?'), findsOneWidget);
+  });
+
+  testWidgets('chords mode shows a chords-only row inside a lyrics section', (tester) async {
+    await pumpEditor(tester, '{verse}\n[F#m7]  [Bsus4]', LyricsMode.chords);
+
+    expect(find.text('F#m7'), findsOneWidget);
+    expect(find.text('Sin letra todavía. Escribila en el modo Letra.'), findsNothing);
+  });
+
+  testWidgets('an older intro with lyrics is edited as lyrics', (tester) async {
+    await pumpEditor(tester, '{intro}\n[G]Oh oh', LyricsMode.lyrics);
+
+    expect(find.text('Oh oh'), findsOneWidget);
+  });
 }

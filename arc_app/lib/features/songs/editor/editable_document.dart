@@ -141,6 +141,10 @@ List<EditableSection> parseToEditable(String content) {
     if (onlyDirectives && sections.length > 1) {
       sections[1].lines.insertAll(0, leading.lines.where((l) => l.rawDirective != null));
       sections.removeAt(0);
+    } else if (leading.lines.any((l) => l.isChordOnly) &&
+        leading.lines.every((l) => l.rawDirective != null || l.isChordOnly || _isBlank(l))) {
+      // Only rows of chords before the first heading: that's an Intro.
+      leading.label = 'intro';
     } else {
       leading.label = 'verse';
     }
@@ -222,10 +226,21 @@ String _lineToChordProText(EditableLine line) {
 bool _isBlank(EditableLine line) =>
     line.rawDirective == null && line.words.every((w) => w.text.isEmpty && w.chord == null);
 
+/// Whether the section has neither lyrics nor chords.
+bool isSectionEmpty(EditableSection section) =>
+    section.lines.every((l) => l.rawDirective != null || _isBlank(l));
+
+/// Whether the section's field holds chords rather than lyrics: an Intro or
+/// Interludio made only of chord rows. An older song can have lyrics under
+/// {intro}; those are edited as lyrics so nothing is dropped.
+bool editsAsChords(EditableSection section) =>
+    isChordOnlySection(section.label) &&
+    section.lines.every((l) => l.rawDirective != null || l.isChordOnly || _isBlank(l));
+
 /// The section as plain text for its text field: lyrics without chords, or
 /// for an Intro/Interludio its chords. Directives are left out.
 String sectionText(EditableSection section) {
-  final chordOnly = isChordOnlySection(section.label);
+  final chordOnly = editsAsChords(section);
   return section.lines
       .where((line) => line.rawDirective == null)
       .map((line) => chordOnly
@@ -235,16 +250,18 @@ String sectionText(EditableSection section) {
 }
 
 /// Rebuilds [section] from the text typed in its field, keeping each chord
-/// on its word: lines are aligned old-to-new first, then the words of each
-/// pair of lines. A word edited in place keeps the chord of the word it
-/// replaces; a deleted word loses its chord. Directives stay at the top.
+/// on its word. Unchanged lines are kept as they are; the words of each
+/// stretch of changed lines are aligned together, so splitting a line with
+/// Enter or joining two keeps their chords. A word edited in place keeps the
+/// chord of the word it replaces; a deleted word loses its chord. Directives
+/// stay at the top.
 EditableSection applyText(EditableSection section, String text) {
   final directives = section.lines.where((l) => l.rawDirective != null);
   final oldLines = section.lines.where((l) => l.rawDirective == null).toList();
   final newTexts = text.split('\n');
   final lines = <EditableLine>[...directives];
 
-  if (isChordOnlySection(section.label)) {
+  if (editsAsChords(section)) {
     for (final row in newTexts) {
       final chords = _splitWords(row);
       lines.add(chords.isEmpty
@@ -254,16 +271,24 @@ EditableSection applyText(EditableSection section, String text) {
   } else {
     final newNormalized = newTexts.map((t) => _splitWords(t).join(' ')).toList();
     final oldTexts = oldLines.map(_lineText).toList();
+    final gapOld = <EditableLine>[];
+    final gapNew = <String>[];
+    void flush() {
+      if (gapNew.isNotEmpty) lines.addAll(_mergeStretch(gapOld, gapNew));
+      gapOld.clear();
+      gapNew.clear();
+    }
+
     for (final (o, n) in _align(oldTexts, newNormalized)) {
-      if (n == null) continue;
-      if (o == null) {
-        lines.add(_plainLine(newTexts[n]));
-      } else if (oldTexts[o] == newNormalized[n]) {
+      if (o != null && n != null && oldTexts[o] == newNormalized[n]) {
+        flush();
         lines.add(oldLines[o]);
       } else {
-        lines.add(_mergeLine(oldLines[o], newTexts[n]));
+        if (o != null) gapOld.add(oldLines[o]);
+        if (n != null) gapNew.add(newTexts[n]);
       }
     }
+    flush();
   }
 
   if (lines.every((l) => l.rawDirective != null)) lines.add(EditableLine());
@@ -302,17 +327,15 @@ String _tokenText(List<EditableWord> token) => token.map((w) => w.text).join();
 String _lineText(EditableLine line) =>
     _tokens(line).map(_tokenText).where((t) => t.isNotEmpty).join(' ');
 
-EditableLine _plainLine(String text) {
-  final words = _splitWords(text);
-  return words.isEmpty
-      ? EditableLine()
-      : EditableLine(words: [for (final w in words) EditableWord(text: w)]);
-}
+/// Rebuilds a stretch of changed lines: the words of all the old lines are
+/// aligned against all the new words, then cut back into the new lines. Line
+/// ids are reused in order.
+List<EditableLine> _mergeStretch(List<EditableLine> oldLines, List<String> newTexts) {
+  final oldTokens = [for (final line in oldLines) ..._tokens(line)];
+  final newLines = newTexts.map(_splitWords).toList();
+  final newWords = [for (final words in newLines) ...words];
 
-EditableLine _mergeLine(EditableLine old, String text) {
-  final oldTokens = _tokens(old);
-  final newWords = _splitWords(text);
-  final words = <EditableWord>[];
+  final merged = List<List<EditableWord>>.filled(newWords.length, const []);
   for (final (o, n) in _align(oldTokens.map(_tokenText).toList(), newWords)) {
     if (n == null) continue;
     final List<EditableWord> token;
@@ -329,9 +352,18 @@ EditableLine _mergeLine(EditableLine old, String text) {
     }
     // A space always separates one token from the next.
     token.last.spaceAfter = true;
-    words.addAll(token);
+    merged[n] = token;
   }
-  return words.isEmpty ? EditableLine(id: old.id) : EditableLine(id: old.id, words: words);
+
+  final result = <EditableLine>[];
+  var next = 0;
+  for (var i = 0; i < newLines.length; i++) {
+    final words = [for (final token in merged.sublist(next, next + newLines[i].length)) ...token];
+    next += newLines[i].length;
+    final id = i < oldLines.length ? oldLines[i].id : null;
+    result.add(words.isEmpty ? EditableLine(id: id) : EditableLine(id: id, words: words));
+  }
+  return result;
 }
 
 /// Pairs (old index, new index). Matches come from the longest common

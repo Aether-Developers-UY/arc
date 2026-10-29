@@ -191,4 +191,33 @@ void main() {
       expect(editableToChordPro(parseToEditable('{intro}\n[G]  [D]')), '{intro}\n[G]  [D]');
     });
   });
+
+  group('review fixes', () {
+    test('lyrics inside an older {intro} are edited as lyrics, not dropped', () {
+      expect(
+        applied('{intro}\n[G]Oh oh\n[D]  [C]', 'Oh oh!\n'),
+        '{intro}\n[G]Oh oh!\n[D]  [C]',
+      );
+    });
+
+    test('a leading block with only chords opens as an Intro', () {
+      expect(parseToEditable('[G]  [D]\n{verse}\nUno').first.label, 'intro');
+    });
+
+    test('pressing Enter mid-line keeps both chords', () {
+      expect(applied('{verse}\n[G]Uno [D]dos', 'Uno\ndos'), '{verse}\n[G]Uno\n[D]dos');
+    });
+
+    test('joining two lines keeps both chords', () {
+      expect(applied('{verse}\n[G]Uno\n[D]dos', 'Uno dos'), '{verse}\n[G]Uno [D]dos');
+    });
+
+    test('typing a new line at the start and then Enter keeps the chords', () {
+      final typed = applyText(parseToEditable('{verse}\n[G]Uno [C]x').first, 'Nueva Uno x');
+      expect(
+        editableToChordPro([applyText(typed, 'Nueva\nUno x')]),
+        '{verse}\nNueva\n[G]Uno [C]x',
+      );
+    });
+  });
 }
