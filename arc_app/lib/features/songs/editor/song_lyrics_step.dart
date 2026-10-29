@@ -32,7 +32,7 @@ class SongLyricsStep extends StatelessWidget {
       children: [
         Text('Letra y acordes', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
-        SongLyricsEditor(sections: sections, onChanged: onSectionsChanged),
+        SongLyricsEditor(sections: sections, onChanged: onSectionsChanged, mode: LyricsMode.lyrics),
         const SizedBox(height: 12),
         TextField(
           controller: notesController,
