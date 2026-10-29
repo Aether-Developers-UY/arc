@@ -1,5 +1,6 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/songs/editor/editable_document.dart';
+import 'package:arc_app/features/songs/editor/song_lyrics_editor.dart';
 import 'package:arc_app/features/songs/editor/song_lyrics_step.dart';
 import 'package:arc_app/features/songs/editor/song_metadata_step.dart';
 import 'package:flutter/material.dart';
@@ -31,10 +32,13 @@ SongLyricsStep lyricsStep({
   String? errorMessage,
   VoidCallback? onBack,
   VoidCallback? onSave,
+  ValueChanged<LyricsMode>? onModeChanged,
 }) {
   return SongLyricsStep(
     sections: [EditableSection(label: 'verse')],
     onSectionsChanged: (_) {},
+    mode: LyricsMode.lyrics,
+    onModeChanged: onModeChanged ?? (_) {},
     notesController: TextEditingController(),
     isSaving: isSaving,
     errorMessage: errorMessage,
@@ -109,5 +113,16 @@ void main() {
 
     expect(find.text('Indicaciones'), findsOneWidget);
     expect(find.text('No se pudo guardar'), findsOneWidget);
+  });
+
+  testWidgets('lyrics step shows the Letra | Acordes switch', (tester) async {
+    LyricsMode? chosen;
+    await pump(tester, lyricsStep(onModeChanged: (mode) => chosen = mode));
+
+    expect(find.text('Letra'), findsOneWidget);
+    await tester.tap(find.text('Acordes'));
+    await tester.pumpAndSettle();
+
+    expect(chosen, LyricsMode.chords);
   });
 }

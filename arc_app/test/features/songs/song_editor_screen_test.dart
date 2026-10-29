@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/songs/song.dart';
+import 'package:arc_app/features/songs/editor/song_lyrics_editor.dart';
 import 'package:arc_app/features/songs/song_editor_screen.dart';
 import 'package:arc_app/features/songs/song_list_provider.dart';
 import 'package:arc_app/features/songs/song_repository.dart';
@@ -20,6 +21,20 @@ class _PendingSaveRepository implements SongRepository {
     createCalls++;
     return Completer<Song>().future;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Records the song sent to `create`.
+class _RecordingRepository implements SongRepository {
+  Song? created;
+
+  @override
+  Future<Song> create(Song song) async => created = song;
+
+  @override
+  Future<List<Song>> list({String? search}) async => [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -239,5 +254,45 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('VERSO'), findsOneWidget);
+  });
+
+  testWidgets('a new song starts step 2 in Letra mode', (tester) async {
+    await openEditor(tester);
+
+    await tester.enterText(field('Título *'), 'Mi canción');
+    await next(tester);
+
+    expect(find.text('Escribí o pegá la letra'), findsOneWidget);
+  });
+
+  testWidgets('an existing song starts step 2 in Acordes mode', (tester) async {
+    await openEditor(tester, existingSong: sampleSong());
+
+    await next(tester);
+
+    expect(find.byType(LyricWord), findsOneWidget);
+    expect(find.text('Escribí o pegá la letra'), findsNothing);
+  });
+
+  testWidgets('write lyrics, add a chord and save', (tester) async {
+    final repository = _RecordingRepository();
+    await openEditor(tester, repository: repository);
+
+    await tester.enterText(field('Título *'), 'Mi canción');
+    await next(tester);
+    await tester.enterText(find.byType(TextField).first, 'Cantaré al Señor');
+    await tester.pump();
+    await tester.tap(find.text('Acordes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Señor'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('D'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Insertar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(repository.created?.content, '{verse}\nCantaré al [D]Señor');
   });
 }

@@ -10,6 +10,8 @@ class SongLyricsStep extends StatelessWidget {
     super.key,
     required this.sections,
     required this.onSectionsChanged,
+    required this.mode,
+    required this.onModeChanged,
     required this.notesController,
     required this.isSaving,
     required this.errorMessage,
@@ -19,6 +21,8 @@ class SongLyricsStep extends StatelessWidget {
 
   final List<EditableSection> sections;
   final ValueChanged<List<EditableSection>> onSectionsChanged;
+  final LyricsMode mode;
+  final ValueChanged<LyricsMode> onModeChanged;
   final TextEditingController notesController;
   final bool isSaving;
   final String? errorMessage;
@@ -30,9 +34,27 @@ class SongLyricsStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Letra y acordes', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        SongLyricsEditor(sections: sections, onChanged: onSectionsChanged, mode: LyricsMode.lyrics),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SegmentedButton<LyricsMode>(
+            segments: const [
+              ButtonSegment(
+                value: LyricsMode.lyrics,
+                icon: Icon(Icons.notes),
+                label: Text('Letra'),
+              ),
+              ButtonSegment(
+                value: LyricsMode.chords,
+                icon: Icon(Icons.music_note),
+                label: Text('Acordes'),
+              ),
+            ],
+            selected: {mode},
+            onSelectionChanged: (selection) => onModeChanged(selection.single),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SongLyricsEditor(sections: sections, onChanged: onSectionsChanged, mode: mode),
         const SizedBox(height: 12),
         TextField(
           controller: notesController,

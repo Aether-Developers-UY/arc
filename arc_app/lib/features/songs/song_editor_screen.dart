@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/content_frame.dart';
 import 'editor/editable_document.dart';
+import 'editor/song_lyrics_editor.dart';
 import 'editor/song_lyrics_step.dart';
 import 'editor/song_metadata_step.dart';
 import 'song.dart';
@@ -46,6 +47,11 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
 
   /// 0 = metadata, 1 = lyrics. Nothing is persisted until "Guardar" on 1.
   int _step = 0;
+
+  /// A new song starts by writing the lyrics; an existing one, by its chords.
+  late LyricsMode _lyricsMode = widget.existingSong?.content.trim().isNotEmpty == true
+      ? LyricsMode.chords
+      : LyricsMode.lyrics;
 
   @override
   void dispose() {
@@ -193,6 +199,8 @@ class _SongEditorScreenState extends ConsumerState<SongEditorScreen> {
                 : SongLyricsStep(
                     sections: _lyricsSections,
                     onSectionsChanged: (updated) => setState(() => _lyricsSections = updated),
+                    mode: _lyricsMode,
+                    onModeChanged: (mode) => setState(() => _lyricsMode = mode),
                     notesController: _notesController,
                     isSaving: _isSaving,
                     errorMessage: _errorMessage,
