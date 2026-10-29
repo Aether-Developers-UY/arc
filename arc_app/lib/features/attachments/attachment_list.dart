@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -27,11 +29,25 @@ class AttachmentList extends ConsumerStatefulWidget {
 
 class _AttachmentListState extends ConsumerState<AttachmentList> {
   final _player = AudioPlayer();
+  late final StreamSubscription<void> _completion;
   bool _isUploading = false;
   String? _errorMessage;
 
+  /// The attachment being downloaded, and the audio currently playing.
+  int? _openingId;
+  int? _playingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _completion = _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _playingId = null);
+    });
+  }
+
   @override
   void dispose() {
+    _completion.cancel();
     _player.dispose();
     super.dispose();
   }
@@ -95,24 +111,45 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
   }
 
   Future<void> _openOrPlay(Attachment attachment) async {
-    setState(() => _errorMessage = null);
+    if (_openingId != null) return;
+    // Tapping the audio that's playing stops it.
+    if (attachment.id == _playingId) {
+      await _player.stop();
+      if (mounted) setState(() => _playingId = null);
+      return;
+    }
+
+    setState(() {
+      _errorMessage = null;
+      _openingId = attachment.id;
+    });
     try {
-      final repository = ref.read(attachmentRepositoryProvider);
-      // The download route requires auth, so it's fetched through the
-      // authenticated Dio client to a local file rather than handed as a
-      // bare URL to audioplayers/url_launcher (neither attaches the
-      // Authorization header the backend requires).
-      final localPath = await repository.downloadToTempFile(attachment);
+      final uri = await ref
+          .read(attachmentRepositoryProvider)
+          .downloadToLocalUri(attachment);
 
       if (attachment.type == 'audio') {
-        await _player.play(DeviceFileSource(localPath));
+        await _player.stop();
+        await _player.play(
+          uri.isScheme('file')
+              ? DeviceFileSource(uri.toFilePath())
+              : UrlSource(uri.toString()),
+        );
+        if (mounted) setState(() => _playingId = attachment.id);
       } else {
-        await launchUrl(Uri.file(localPath), mode: LaunchMode.externalApplication);
+        // On the web this opens the browser's PDF viewer in a new tab.
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+          webOnlyWindowName: '_blank',
+        );
       }
     } catch (_) {
       if (mounted) {
         setState(() => _errorMessage = 'No se pudo abrir el archivo.');
       }
+    } finally {
+      if (mounted) setState(() => _openingId = null);
     }
   }
 
@@ -152,10 +189,32 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
           ),
         for (final attachment in widget.song.attachments)
           ListTile(
-            leading: Icon(attachment.type == 'audio' ? Icons.audiotrack : Icons.picture_as_pdf),
+            leading: attachment.id == _openingId
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Padding(
+                      padding: EdgeInsets.all(3),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : Icon(
+                    attachment.id == _playingId
+                        ? Icons.stop_circle_outlined
+                        : attachment.type == 'audio'
+                        ? Icons.audiotrack
+                        : Icons.picture_as_pdf,
+                    color: attachment.id == _playingId
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
             title: Text(attachment.originalName),
+            subtitle: attachment.id == _playingId
+                ? const Text('Reproduciendo · tocá para detener')
+                : null,
             onTap: () => _openOrPlay(attachment),
             trailing: IconButton(
+              tooltip: 'Eliminar archivo',
               icon: const Icon(Icons.delete_outline),
               onPressed: () => _delete(attachment),
             ),
