@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/chordpro/chordpro_parser.dart';
+import '../../core/chordpro/section_names.dart';
 import '../../core/chordpro/transposer.dart';
 import '../../core/layout.dart';
 import '../../core/theme/arca_theme.dart';
@@ -313,7 +314,7 @@ class _Lyrics extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 6),
               child: Text(
-                line.sectionLabel!.toUpperCase(),
+                sectionName(line.sectionLabel).toUpperCase(),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w700,
@@ -350,6 +351,21 @@ class _ChordLine extends StatelessWidget {
           height: 1.3,
           fontWeight: FontWeight.w500,
         );
+
+    // An Intro/Interludio line: just the chords, spaced out, no lyric row.
+    if (segments.every((segment) => segment.text.trim().isEmpty)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Wrap(
+          spacing: 16,
+          children: [
+            for (final segment in segments)
+              if (segment.chord != null)
+                Text(transposeChord(segment.chord!, semitones: semitones), style: chordStyle),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

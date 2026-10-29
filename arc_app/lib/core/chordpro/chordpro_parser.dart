@@ -35,7 +35,7 @@ class ChordProParser {
   /// Directive names that represent a song section, as opposed to metadata
   /// directives like {title:}/{key:}/{tempo:} which carry no lyric content
   /// and should not be mistaken for a section heading.
-  static const _sectionDirectiveNames = {'verse', 'chorus', 'bridge', 'tag'};
+  static const _sectionDirectiveNames = {'intro', 'verse', 'chorus', 'bridge', 'interlude', 'tag'};
 
   static ChordProDocument parse(String content) {
     final rawLines = content.split('\n');

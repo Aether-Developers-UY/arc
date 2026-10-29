@@ -21,6 +21,13 @@ void main() {
       ]);
     });
 
+    test('{intro} and {interlude} are section headings', () {
+      final doc = ChordProParser.parse('{intro}\n[G]  [D]\n{interlude}');
+
+      expect(doc.lines[0].sectionLabel, 'intro');
+      expect(doc.lines[2].sectionLabel, 'interlude');
+    });
+
     test('recognizes section directives like {verse} and {chorus}', () {
       final doc = ChordProParser.parse('{verse}\n[G]Letra\n{chorus}\n[D]Otra letra');
 
