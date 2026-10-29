@@ -89,4 +89,106 @@ void main() {
       expect(lyricLine.segments.map((s) => s.text).join(' ').trim(), 'Solo letra sin acordes');
     });
   });
+
+  /// Applies [text] to the first section of [content] and serializes it.
+  String applied(String content, String text) =>
+      editableToChordPro([applyText(parseToEditable(content).first, text)]);
+
+  group('applyText keeps chords on their words', () {
+    test('a corrected word keeps its chord', () {
+      expect(
+        applied('{verse}\n[G]Sublime [C]gracía del Señor', 'Sublime gracia del Señor'),
+        '{verse}\n[G]Sublime [C]gracia del Señor',
+      );
+    });
+
+    test('a word inserted before chords leaves them on their words', () {
+      expect(
+        applied('{verse}\n[G]Sublime [C]gracia', 'Oh Sublime gracia'),
+        '{verse}\nOh [G]Sublime [C]gracia',
+      );
+    });
+
+    test('a line inserted above keeps the chords on their lines', () {
+      expect(applied('{verse}\n[G]Uno\n[D]Dos', 'Nueva\nUno\nDos'), '{verse}\nNueva\n[G]Uno\n[D]Dos');
+    });
+
+    test('a deleted line takes only its own chords', () {
+      expect(applied('{verse}\n[G]Uno\n[D]Dos', 'Dos'), '{verse}\n[D]Dos');
+    });
+
+    test('a deleted word loses its chord', () {
+      expect(applied('{verse}\n[G]Sublime [C]gracia', 'Sublime'), '{verse}\n[G]Sublime');
+    });
+
+    test('a mid-word chord survives edits elsewhere in its line', () {
+      expect(
+        applied('{verse}\nque a un infeliz salv[G]ó', 'que a un pobre infeliz salvó'),
+        '{verse}\nque a un pobre infeliz salv[G]ó',
+      );
+    });
+
+    test('clearing a section and typing it again starts without chords', () {
+      final cleared = applyText(parseToEditable('{verse}\n[G]Uno').first, '');
+      expect(cleared.lines, hasLength(1));
+      expect(editableToChordPro([applyText(cleared, 'Uno')]), '{verse}\nUno');
+    });
+
+    test('extra spaces and tabs never create empty words', () {
+      expect(applied('{verse}\n[G]Hola', 'Hola   mundo\t '), '{verse}\n[G]Hola mundo');
+    });
+
+    test('applying the same text changes nothing, blank lines included', () {
+      const content = '{verse}\n[G]Uno\n\n[D]Dos';
+      final section = parseToEditable(content).first;
+      expect(editableToChordPro([applyText(section, sectionText(section))]), content);
+    });
+
+    test('the section keeps its id and lines keep theirs', () {
+      final section = parseToEditable('{verse}\n[G]Uno\n[D]Dos').first;
+      final updated = applyText(section, 'Nueva\nUno\nDos');
+      expect(updated.id, section.id);
+      expect(updated.lines[1].id, section.lines[0].id);
+    });
+
+    test('applyText preserves {title:} directives', () {
+      expect(applied('{verse}\n{title: X}\n[G]Uno', 'Uno'), '{verse}\n{title: X}\n[G]Uno');
+    });
+
+    test('sectionText leaves out chords and directives', () {
+      final section = parseToEditable('{verse}\n{title: X}\n[G]Sublime [C]gracia\nque a un salv[G]ó').first;
+      expect(sectionText(section), 'Sublime gracia\nque a un salvó');
+    });
+  });
+
+  group('untitled leading content', () {
+    test('lyrics before the first section open as a Verso', () {
+      final sections = parseToEditable('Hola\n{chorus}\nCoro');
+      expect(sections.map((s) => s.label), ['verse', 'chorus']);
+    });
+
+    test('directives before the first section join that section', () {
+      final sections = parseToEditable('{title: X}\n{verse}\nUno');
+      expect(sections, hasLength(1));
+      expect(sections.single.label, 'verse');
+      expect(sections.single.lines.first.rawDirective, '{title: X}');
+    });
+  });
+
+  group('chord-only sections', () {
+    test('sectionText of an intro lists its chords', () {
+      expect(sectionText(parseToEditable('{intro}\n[G]  [D]  [Em]').first), 'G  D  Em');
+    });
+
+    test('applying chords to an intro writes chords-only lines', () {
+      expect(
+        editableToChordPro([applyText(EditableSection(label: 'intro'), 'G D\nEm  C')]),
+        '{intro}\n[G]  [D]\n[Em]  [C]',
+      );
+    });
+
+    test('a chords-only line round-trips unchanged', () {
+      expect(editableToChordPro(parseToEditable('{intro}\n[G]  [D]')), '{intro}\n[G]  [D]');
+    });
+  });
 }

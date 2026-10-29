@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import '../../../core/chordpro/chordpro_parser.dart';
+import '../../../core/chordpro/section_names.dart';
 
 /// One word of lyric text, with an optional chord attached to it — the
 /// chord that appears just before this word, ChordPro-style.
@@ -49,6 +52,12 @@ class EditableLine {
   final int id;
   List<EditableWord> words;
   final String? rawDirective;
+
+  /// A row of chords with no lyrics, like an Intro or Interludio line.
+  bool get isChordOnly =>
+      words.isNotEmpty &&
+      words.every((w) => w.text.isEmpty) &&
+      words.any((w) => w.chord != null);
 }
 
 /// A section of the song (a verse, chorus, bridge, or an untitled block),
@@ -113,11 +122,31 @@ List<EditableSection> parseToEditable(String content) {
       }
       continue;
     }
-    section.lines.add(_segmentsToLine(line.segments));
+    final isChordsOnly = line.segments.every((s) => s.text.trim().isEmpty) &&
+        line.segments.any((s) => s.chord != null);
+    section.lines.add(isChordsOnly
+        ? EditableLine(words: [
+            for (final s in line.segments)
+              if (s.chord != null) EditableWord(text: '', chord: s.chord),
+          ])
+        : _segmentsToLine(line.segments));
   }
 
+  // Content before the first section heading opens as a Verso — unless it
+  // is only directives ({title:}, {key:}), which join the next section.
+  if (sections.isNotEmpty && sections.first.label == null) {
+    final leading = sections.first;
+    final onlyDirectives = leading.lines
+        .every((l) => l.rawDirective != null || _isBlank(l));
+    if (onlyDirectives && sections.length > 1) {
+      sections[1].lines.insertAll(0, leading.lines.where((l) => l.rawDirective != null));
+      sections.removeAt(0);
+    } else {
+      leading.label = 'verse';
+    }
+  }
   if (sections.isEmpty) {
-    sections.add(EditableSection());
+    sections.add(EditableSection(label: 'verse'));
   }
   for (final section in sections) {
     if (section.lines.isEmpty) {
@@ -173,6 +202,7 @@ String editableToChordPro(List<EditableSection> sections) {
 
 String _lineToChordProText(EditableLine line) {
   if (line.rawDirective != null) return line.rawDirective!;
+  if (line.isChordOnly) return line.words.map((w) => '[${w.chord}]').join('  ');
 
   final buffer = StringBuffer();
   for (var i = 0; i < line.words.length; i++) {
@@ -187,4 +217,160 @@ String _lineToChordProText(EditableLine line) {
     }
   }
   return buffer.toString();
+}
+
+bool _isBlank(EditableLine line) =>
+    line.rawDirective == null && line.words.every((w) => w.text.isEmpty && w.chord == null);
+
+/// The section as plain text for its text field: lyrics without chords, or
+/// for an Intro/Interludio its chords. Directives are left out.
+String sectionText(EditableSection section) {
+  final chordOnly = isChordOnlySection(section.label);
+  return section.lines
+      .where((line) => line.rawDirective == null)
+      .map((line) => chordOnly
+          ? line.words.where((w) => w.chord != null).map((w) => w.chord).join('  ')
+          : _lineText(line))
+      .join('\n');
+}
+
+/// Rebuilds [section] from the text typed in its field, keeping each chord
+/// on its word: lines are aligned old-to-new first, then the words of each
+/// pair of lines. A word edited in place keeps the chord of the word it
+/// replaces; a deleted word loses its chord. Directives stay at the top.
+EditableSection applyText(EditableSection section, String text) {
+  final directives = section.lines.where((l) => l.rawDirective != null);
+  final oldLines = section.lines.where((l) => l.rawDirective == null).toList();
+  final newTexts = text.split('\n');
+  final lines = <EditableLine>[...directives];
+
+  if (isChordOnlySection(section.label)) {
+    for (final row in newTexts) {
+      final chords = _splitWords(row);
+      lines.add(chords.isEmpty
+          ? EditableLine()
+          : EditableLine(words: [for (final c in chords) EditableWord(text: '', chord: c)]));
+    }
+  } else {
+    final newNormalized = newTexts.map((t) => _splitWords(t).join(' ')).toList();
+    final oldTexts = oldLines.map(_lineText).toList();
+    for (final (o, n) in _align(oldTexts, newNormalized)) {
+      if (n == null) continue;
+      if (o == null) {
+        lines.add(_plainLine(newTexts[n]));
+      } else if (oldTexts[o] == newNormalized[n]) {
+        lines.add(oldLines[o]);
+      } else {
+        lines.add(_mergeLine(oldLines[o], newTexts[n]));
+      }
+    }
+  }
+
+  if (lines.every((l) => l.rawDirective != null)) lines.add(EditableLine());
+  return EditableSection(id: section.id, label: section.label, lines: lines);
+}
+
+List<String> _splitWords(String text) =>
+    text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+/// Groups a line's words into what the text field shows as one word: a word
+/// glued to the next one (a mid-word chord, `salv[G]ó`) or a chord with no
+/// text of its own joins its neighbour.
+List<List<EditableWord>> _tokens(EditableLine line) {
+  final tokens = <List<EditableWord>>[];
+  var current = <EditableWord>[];
+  String textOf(List<EditableWord> words) => words.map((w) => w.text).join();
+  for (final word in line.words) {
+    current.add(word);
+    if (word.spaceAfter && textOf(current).isNotEmpty) {
+      tokens.add(current);
+      current = [];
+    }
+  }
+  if (current.isNotEmpty) {
+    if (textOf(current).isEmpty && tokens.isNotEmpty) {
+      tokens.last.addAll(current);
+    } else if (textOf(current).isNotEmpty || current.any((w) => w.chord != null)) {
+      tokens.add(current);
+    }
+  }
+  return tokens;
+}
+
+String _tokenText(List<EditableWord> token) => token.map((w) => w.text).join();
+
+String _lineText(EditableLine line) =>
+    _tokens(line).map(_tokenText).where((t) => t.isNotEmpty).join(' ');
+
+EditableLine _plainLine(String text) {
+  final words = _splitWords(text);
+  return words.isEmpty
+      ? EditableLine()
+      : EditableLine(words: [for (final w in words) EditableWord(text: w)]);
+}
+
+EditableLine _mergeLine(EditableLine old, String text) {
+  final oldTokens = _tokens(old);
+  final newWords = _splitWords(text);
+  final words = <EditableWord>[];
+  for (final (o, n) in _align(oldTokens.map(_tokenText).toList(), newWords)) {
+    if (n == null) continue;
+    final List<EditableWord> token;
+    if (o != null && _tokenText(oldTokens[o]) == newWords[n]) {
+      token = [
+        for (final w in oldTokens[o])
+          EditableWord(text: w.text, chord: w.chord, spaceAfter: w.spaceAfter),
+      ];
+    } else {
+      final chord = o == null
+          ? null
+          : oldTokens[o].firstWhere((w) => w.chord != null, orElse: () => EditableWord(text: '')).chord;
+      token = [EditableWord(text: newWords[n], chord: chord)];
+    }
+    // A space always separates one token from the next.
+    token.last.spaceAfter = true;
+    words.addAll(token);
+  }
+  return words.isEmpty ? EditableLine(id: old.id) : EditableLine(id: old.id, words: words);
+}
+
+/// Pairs (old index, new index). Matches come from the longest common
+/// subsequence; within each stretch between matches, elements are paired in
+/// order and the leftovers get null on the other side.
+List<(int?, int?)> _align(List<String> a, List<String> b) {
+  final dp = List.generate(a.length + 1, (_) => List.filled(b.length + 1, 0));
+  for (var i = a.length - 1; i >= 0; i--) {
+    for (var j = b.length - 1; j >= 0; j--) {
+      dp[i][j] = a[i] == b[j] ? dp[i + 1][j + 1] + 1 : max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  final pairs = <(int?, int?)>[];
+  final gapA = <int>[], gapB = <int>[];
+  void flush() {
+    for (var k = 0; k < max(gapA.length, gapB.length); k++) {
+      pairs.add((k < gapA.length ? gapA[k] : null, k < gapB.length ? gapB[k] : null));
+    }
+    gapA.clear();
+    gapB.clear();
+  }
+
+  var i = 0, j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] == b[j]) {
+      flush();
+      pairs.add((i++, j++));
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      gapA.add(i++);
+    } else {
+      gapB.add(j++);
+    }
+  }
+  while (i < a.length) {
+    gapA.add(i++);
+  }
+  while (j < b.length) {
+    gapB.add(j++);
+  }
+  flush();
+  return pairs;
 }
