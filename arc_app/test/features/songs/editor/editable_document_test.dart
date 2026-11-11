@@ -192,6 +192,23 @@ void main() {
     });
   });
 
+  group('saving twice', () {
+    test('does not add a blank line between sections each time', () {
+      const content = '{verse}\n[D]Uno\n\n{chorus}\n[G]Dos\n';
+      final once = editableToChordPro(parseToEditable(content));
+      final twice = editableToChordPro(parseToEditable(once));
+
+      expect(once, '{verse}\n[D]Uno\n\n{chorus}\n[G]Dos');
+      expect(twice, once);
+    });
+
+    test('keeps blank lines between stanzas inside a section', () {
+      const content = '{verse}\nUno\n\nDos\n\n{chorus}\nTres';
+
+      expect(editableToChordPro(parseToEditable(content)), content);
+    });
+  });
+
   group('review fixes', () {
     test('lyrics inside an older {intro} are edited as lyrics, not dropped', () {
       expect(

@@ -194,7 +194,13 @@ String editableToChordPro(List<EditableSection> sections) {
     if (section.label != null) {
       buffer.writeln('{${section.label}}');
     }
-    for (final line in section.lines) {
+    // Blank lines at the end of a section are the gap before the next one,
+    // which is written below; keeping them would add a blank line per save.
+    var end = section.lines.length;
+    while (end > 0 && _isBlank(section.lines[end - 1])) {
+      end--;
+    }
+    for (final line in section.lines.take(end)) {
       buffer.writeln(_lineToChordProText(line));
     }
     if (s < sections.length - 1) {
