@@ -90,6 +90,23 @@ class SetlistAnnexScopeTest extends TestCase
         $this->assertDatabaseCount('setlist_songs', 1);
     }
 
+    public function test_a_song_of_another_setlist_cannot_be_reached_through_mine(): void
+    {
+        [$mine, $other] = Annex::factory()->count(2)->create();
+        $mySetlist = Setlist::factory()->create(['annex_id' => $mine->id]);
+        $foreign = SetlistSong::factory()->create([
+            'setlist_id' => Setlist::factory()->create(['annex_id' => $other->id])->id,
+            'key' => 'G',
+        ]);
+        $user = $this->memberOf($mine);
+        $route = "/api/setlists/{$mySetlist->id}/songs/{$foreign->id}";
+
+        $this->actingAs($user, 'sanctum')->putJson($route, ['key' => 'D'])->assertNotFound();
+        $this->actingAs($user, 'sanctum')->deleteJson($route)->assertNotFound();
+
+        $this->assertDatabaseHas('setlist_songs', ['id' => $foreign->id, 'key' => 'G']);
+    }
+
     public function test_creating_a_setlist_in_my_annex(): void
     {
         $annex = Annex::factory()->create();
