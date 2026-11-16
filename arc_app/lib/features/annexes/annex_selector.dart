@@ -21,6 +21,8 @@ class AnnexSelector extends ConsumerWidget {
     final active = ref.watch(activeAnnexProvider);
     final annexes = ref.watch(authProvider.select((s) => s.user?.annexes ?? const <Annex>[]));
     final scheme = Theme.of(context).colorScheme;
+    // Icon and name share one colour.
+    final color = active == null ? context.arca.textSecondary : scheme.onSurface;
 
     return PopupMenuButton<Object>(
       tooltip: 'Cambiar de anexo',
@@ -54,14 +56,14 @@ class AnnexSelector extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.church_outlined, size: 18, color: scheme.primary),
+            Icon(Icons.church_outlined, size: 18, color: color),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 active == null ? 'Sin anexo' : active.name,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: active == null ? context.arca.textSecondary : scheme.onSurface,
+                      color: color,
                       fontWeight: FontWeight.w600,
                     ),
               ),

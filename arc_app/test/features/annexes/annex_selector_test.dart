@@ -64,6 +64,16 @@ void main() {
     expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
   });
 
+  for (final (label, annexes, text) in [('with an annex', [centro], 'Centro'), ('without', <Annex>[], 'Sin anexo')]) {
+    testWidgets('the church icon matches the text colour ($label)', (tester) async {
+      await pumpSelector(tester, annexes);
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.church_outlined));
+      final label = tester.widget<Text>(find.text(text));
+      expect(icon.color, label.style!.color);
+    });
+  }
+
   testWidgets('without annexes says so', (tester) async {
     await pumpSelector(tester, []);
 
