@@ -10,6 +10,7 @@ import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
 import '../attachments/attachment_list.dart';
+import 'autoscroll.dart';
 import 'song.dart';
 import 'song_editor_screen.dart';
 import 'song_list_provider.dart';
@@ -28,7 +29,19 @@ class SongDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<SongDetailScreen> createState() => _SongDetailScreenState();
 }
 
-class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
+class _SongDetailScreenState extends ConsumerState<SongDetailScreen>
+    with SingleTickerProviderStateMixin {
+  final _scrollController = ScrollController();
+  late final _autoScroller =
+      AutoScroller(vsync: this, controller: _scrollController, songId: widget.song.id);
+
+  @override
+  void dispose() {
+    _autoScroller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   late Song _song = widget.song;
   late String _currentKey = widget.initialKey ?? _song.originalKey;
   static const _availableKeys = [
@@ -178,6 +191,7 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
     );
 
     return Scaffold(
+      floatingActionButton: AutoScrollControls(scroller: _autoScroller),
       appBar: AppBar(
         actions: [
           IconButton(
@@ -202,7 +216,10 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(bottom: 32),
+                      key: const Key('song-scroll'),
+                      controller: _scrollController,
+                      // Room so the last lines clear the autoscroll bar.
+                      padding: const EdgeInsets.only(bottom: 96),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -226,7 +243,9 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen> {
                 ],
               )
             : ListView(
-                padding: const EdgeInsets.only(bottom: 32),
+                key: const Key('song-scroll'),
+                controller: _scrollController,
+                padding: const EdgeInsets.only(bottom: 96),
                 children: [
                   header,
                   ?indications,
