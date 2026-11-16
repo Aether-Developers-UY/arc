@@ -29,14 +29,14 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->only(['id', 'name', 'email']),
+            'user' => $user->toProfileArray(),
         ]);
     }
 
     public function me(Request $request)
     {
         return response()->json([
-            'user' => $request->user()->only(['id', 'name', 'email']),
+            'user' => $request->user()->toProfileArray(),
         ]);
     }
 

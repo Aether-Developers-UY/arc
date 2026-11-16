@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnnexController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SetlistController;
@@ -23,4 +24,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/setlists/{setlist}/songs/{setlistSong}', [SetlistSongController::class, 'update']);
     Route::delete('/setlists/{setlist}/songs/{setlistSong}', [SetlistSongController::class, 'destroy']);
     Route::put('/setlists/{setlist}/reorder', [SetlistSongController::class, 'reorder']);
+
+    Route::get('/annexes', [AnnexController::class, 'index']);
+    Route::post('/annexes/{annex}/join', [AnnexController::class, 'join']);
+    Route::delete('/annexes/{annex}/join', [AnnexController::class, 'leave']);
+
+    Route::middleware('can:admin')->group(function () {
+        Route::post('/annexes', [AnnexController::class, 'store']);
+        Route::put('/annexes/{annex}', [AnnexController::class, 'update']);
+        Route::delete('/annexes/{annex}', [AnnexController::class, 'destroy']);
+    });
 });

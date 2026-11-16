@@ -37,6 +37,19 @@ class User extends Authenticatable
         return $this->belongsToMany(Annex::class)->withTimestamps();
     }
 
+    /**
+     * What the app knows about the signed-in user (login and /me).
+     */
+    public function toProfileArray(): array
+    {
+        return [
+            ...$this->only(['id', 'name', 'email', 'role']),
+            'annexes' => $this->annexes()->orderBy('annexes.id')->get(['annexes.id', 'annexes.name'])
+                ->map(fn (Annex $annex) => $annex->only(['id', 'name']))
+                ->all(),
+        ];
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

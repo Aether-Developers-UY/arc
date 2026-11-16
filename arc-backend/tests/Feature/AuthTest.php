@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Annex;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,6 +50,34 @@ class AuthTest extends TestCase
             ->getJson('/api/me');
 
         $response->assertOk()->assertJsonPath('user.email', 'musico@example.com');
+    }
+
+    public function test_me_includes_role_and_annexes(): void
+    {
+        $user = User::factory()->admin()->create();
+        $second = Annex::factory()->create(['name' => 'Norte']);
+        $first = Annex::factory()->create(['name' => 'Centro']);
+        $user->annexes()->attach([$first->id, $second->id]);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('user.role', 'admin')
+            ->assertJsonPath('user.annexes', [
+                ['id' => $second->id, 'name' => 'Norte'],
+                ['id' => $first->id, 'name' => 'Centro'],
+            ]);
+    }
+
+    public function test_login_returns_role_and_annexes(): void
+    {
+        $user = User::factory()->create(['email' => 'equipo@example.com', 'password' => 'secret123']);
+        $annex = Annex::factory()->create(['name' => 'Centro']);
+        $user->annexes()->attach($annex);
+
+        $this->postJson('/api/login', ['email' => 'equipo@example.com', 'password' => 'secret123'])
+            ->assertOk()
+            ->assertJsonPath('user.role', 'standard')
+            ->assertJsonPath('user.annexes', [['id' => $annex->id, 'name' => 'Centro']]);
     }
 
     public function test_guests_cannot_fetch_the_profile_endpoint(): void
