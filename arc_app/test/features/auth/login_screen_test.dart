@@ -56,4 +56,12 @@ void main() {
       expect(find.byTooltip('Tema'), findsOneWidget);
     });
   }
+
+  for (final (label, size, logo) in [('desktop', const Size(1200, 900), 80.0), ('phone', const Size(390, 844), 60.0)]) {
+    testWidgets('the church logo is shown large ($label)', (tester) async {
+      await pumpLogin(tester, theme: ArcaTheme.light(), size: size);
+
+      expect(tester.getSize(find.byType(Image).first), Size(logo, logo));
+    });
+  }
 }

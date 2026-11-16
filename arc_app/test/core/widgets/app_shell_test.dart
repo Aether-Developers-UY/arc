@@ -128,6 +128,14 @@ void main() {
     expect(find.text('Administración'), findsNothing);
   });
 
+  for (final (label, size, logo) in [('desktop', const Size(1200, 900), 52.0), ('phone', const Size(390, 844), 40.0)]) {
+    testWidgets('the church logo is shown large ($label)', (tester) async {
+      await pumpShell(tester, size: size);
+
+      expect(tester.getSize(find.byType(Image).first), Size(logo, logo));
+    });
+  }
+
   testWidgets('admins get the Administración tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900), asAdmin: true);
 

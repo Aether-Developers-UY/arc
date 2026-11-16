@@ -42,11 +42,11 @@ class ArcaLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         mark,
-        SizedBox(width: size * 0.25),
+        SizedBox(width: size * 0.2),
         Text(
           'Arca',
           style: theme.textTheme.headlineSmall?.copyWith(
-            fontSize: size * 0.6,
+            fontSize: size * 0.5,
             color: wordmarkColor ?? theme.colorScheme.onSurface,
           ),
         ),
