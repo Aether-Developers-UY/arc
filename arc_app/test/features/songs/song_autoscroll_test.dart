@@ -17,8 +17,8 @@ class FakeScreenAwake implements ScreenAwake {
 
 late FakeScreenAwake awake;
 
-/// Base speed: 30 logical pixels per second at 1×.
-const _base = 30.0;
+/// Base speed: 20 logical pixels per second at 1×.
+const _base = 20.0;
 
 final _longSong = [
   for (var i = 1; i <= 60; i++) '[G]Línea número $i de la [D]canción',
@@ -139,7 +139,7 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tap(tester, 'Más lento');
     }
-    expect(find.text('0.5×'), findsOneWidget);
+    expect(find.text('0.25×'), findsOneWidget);
     expect(tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.remove)).onPressed, isNull);
 
     for (var i = 0; i < 20; i++) {

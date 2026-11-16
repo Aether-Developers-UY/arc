@@ -20,8 +20,8 @@ class AutoScroller extends ChangeNotifier {
   }
 
   /// Logical pixels per second at 1×: a slow, readable pace.
-  static const baseSpeed = 30.0;
-  static const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
+  static const baseSpeed = 20.0;
+  static const speeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 
   final ScrollController controller;
   final int songId;
