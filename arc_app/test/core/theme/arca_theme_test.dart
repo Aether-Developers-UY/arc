@@ -43,4 +43,16 @@ void main() {
       expect(channels.first, greaterThanOrEqualTo(0x1A));
     }
   });
+
+  for (final (label, theme) in [('light', ArcaTheme.light()), ('dark', ArcaTheme.dark())]) {
+    test('segmented selectors use terracota, not the chord green ($label)', () {
+      final style = theme.segmentedButtonTheme.style!;
+      const selected = {WidgetState.selected};
+      final primary = theme.colorScheme.primary;
+
+      expect(style.foregroundColor!.resolve(selected), primary);
+      expect(style.backgroundColor!.resolve(selected), primary.withValues(alpha: 0.16));
+      expect(style.backgroundColor!.resolve({}), Colors.transparent);
+    });
+  }
 }

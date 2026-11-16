@@ -122,6 +122,21 @@ class ArcaTheme {
           TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: p.text),
         ),
       ),
+      // Material picks the secondary colour (the chord green) for the
+      // selected segment; use the same terracota tint as the sidebar.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? p.primary.withValues(alpha: 0.16)
+                : Colors.transparent,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? p.primary : p.text,
+          ),
+          side: WidgetStatePropertyAll(BorderSide(color: p.border)),
+        ),
+      ),
       chipTheme: ChipThemeData(
         backgroundColor: p.surface,
         selectedColor: p.primary.withValues(alpha: 0.2),
