@@ -171,8 +171,6 @@ class _Sidebar extends StatelessWidget {
             padding: EdgeInsets.only(left: 8, bottom: 16),
             child: ArcaLogo(size: 46, showWordmark: true),
           ),
-          annexSelector,
-          const SizedBox(height: 16),
           for (var i = 0; i < destinations.length; i++)
             _SidebarItem(
               destination: destinations[i],
@@ -180,6 +178,9 @@ class _Sidebar extends StatelessWidget {
               onTap: () => onSelect(i),
             ),
           const Spacer(),
+          // Down here, next to Mis anexos, the annex controls sit together.
+          annexSelector,
+          const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 12),
           if (userName != null)

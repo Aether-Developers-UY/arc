@@ -136,6 +136,16 @@ void main() {
     });
   }
 
+  testWidgets('on desktop the annex selector sits above the divider, over Mis anexos', (tester) async {
+    await pumpShell(tester, size: const Size(1200, 900));
+
+    final selector = tester.getTopLeft(find.text('Anexo principal')).dy;
+    final divider = tester.getTopLeft(find.byType(Divider).first).dy;
+    final setlists = tester.getTopLeft(find.text('Setlists')).dy;
+    expect(selector, greaterThan(setlists));
+    expect(selector, lessThan(divider));
+  });
+
   testWidgets('admins get the Administración tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900), asAdmin: true);
 
