@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/arca_theme.dart';
+import 'core/theme/theme_mode_provider.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'core/widgets/app_shell.dart';
@@ -45,7 +46,7 @@ class ArcApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ArcaTheme.light(),
       darkTheme: ArcaTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeModeProvider),
       home: home,
     );
   }

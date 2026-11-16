@@ -27,18 +27,20 @@ class ArcaPalette {
   final Color chord;
   final Color error;
 
-  /// "Diluvio" — deep water.
+  /// "Carbón" — soft charcoal greys, never pure black, so it is easy on
+  /// the eyes. Surfaces get lighter as they rise; the blue is lifted a
+  /// little to keep its contrast on grey.
   static const night = ArcaPalette(
-    background: Color(0xFF0B1420),
-    surface: Color(0xFF122033),
-    surfaceElevated: Color(0xFF1B2E47),
-    border: Color(0xFF243A57),
-    primary: Color(0xFF4C9BE8),
-    onPrimary: Color(0xFF06131F),
-    text: Color(0xFFE8EEF6),
-    textSecondary: Color(0xFF8FA3BC),
+    background: Color(0xFF1E1F22),
+    surface: Color(0xFF26282C),
+    surfaceElevated: Color(0xFF303338),
+    border: Color(0xFF3C3F45),
+    primary: Color(0xFF6AA8EC),
+    onPrimary: Color(0xFF0E1A26),
+    text: Color(0xFFE6E7EA),
+    textSecondary: Color(0xFFA0A4AB),
     chord: Color(0xFFF2B441),
-    error: Color(0xFFFF7A7A),
+    error: Color(0xFFFF8A80),
   );
 
   /// "Día".

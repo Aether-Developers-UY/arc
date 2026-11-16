@@ -12,6 +12,7 @@ import '../../features/songs/song_list_screen.dart';
 import '../layout.dart';
 import '../theme/arca_tokens.dart';
 import 'arca_logo.dart';
+import 'theme_mode_menu.dart';
 
 class _Destination {
   const _Destination(this.label, this.icon, this.selectedIcon);
@@ -112,6 +113,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             icon: const Icon(Icons.groups_outlined),
             onPressed: _manageAnnexes,
           ),
+          const ThemeModeMenu(),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),
@@ -199,6 +201,10 @@ class _Sidebar extends StatelessWidget {
               selected: false,
               onTap: onManageAnnexes,
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: ThemeModeMenu(expanded: true),
           ),
           _SidebarItem(
             destination: const _Destination(

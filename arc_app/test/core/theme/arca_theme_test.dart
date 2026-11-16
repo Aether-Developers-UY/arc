@@ -9,10 +9,10 @@ void main() {
     ArcaTheme.useGoogleFonts = false;
   });
 
-  test('dark theme uses the night background and gold chords', () {
+  test('dark theme uses a charcoal background and gold chords', () {
     final theme = ArcaTheme.dark();
     expect(theme.brightness, Brightness.dark);
-    expect(theme.scaffoldBackgroundColor, const Color(0xFF0B1420));
+    expect(theme.scaffoldBackgroundColor, const Color(0xFF1E1F22));
     expect(theme.extension<ArcaTokens>()!.chord, const Color(0xFFF2B441));
   });
 
@@ -24,7 +24,23 @@ void main() {
   });
 
   test('primary colour differs between themes', () {
-    expect(ArcaTheme.dark().colorScheme.primary, const Color(0xFF4C9BE8));
+    expect(ArcaTheme.dark().colorScheme.primary, const Color(0xFF6AA8EC));
     expect(ArcaTheme.light().colorScheme.primary, const Color(0xFF1F5FA8));
+  });
+
+  test('dark theme surfaces are neutral greys, never pure black', () {
+    final theme = ArcaTheme.dark();
+    final greys = [
+      theme.scaffoldBackgroundColor,
+      theme.colorScheme.surface,
+      theme.extension<ArcaTokens>()!.surfaceElevated,
+    ];
+    for (final c in greys) {
+      // Charcoal: red, green and blue stay within a few steps of each
+      // other, and well above black.
+      final channels = [c.r, c.g, c.b].map((v) => (v * 255).round()).toList()..sort();
+      expect(channels.last - channels.first, lessThanOrEqualTo(8));
+      expect(channels.first, greaterThanOrEqualTo(0x1A));
+    }
   });
 }

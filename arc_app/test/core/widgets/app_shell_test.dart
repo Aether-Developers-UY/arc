@@ -1,4 +1,5 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
+import 'package:arc_app/core/theme/theme_mode_provider.dart';
 import 'package:arc_app/core/widgets/app_shell.dart';
 import 'package:arc_app/features/admin/admin_repository.dart';
 import 'package:arc_app/features/annexes/annex_repository.dart';
@@ -104,6 +105,20 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MyAnnexesScreen), findsOneWidget);
+    });
+  }
+
+  for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {
+    testWidgets('the theme can be switched to dark from the shell ($label)', (tester) async {
+      await pumpShell(tester, size: size);
+
+      await tester.tap(find.byTooltip('Tema'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Oscuro'));
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(tester.element(find.byType(AppShell)));
+      expect(container.read(themeModeProvider), ThemeMode.dark);
     });
   }
 
