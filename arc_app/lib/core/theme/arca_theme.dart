@@ -118,8 +118,20 @@ class ArcaTheme {
         backgroundColor: p.surface,
         surfaceTintColor: Colors.transparent,
         indicatorColor: p.primary.withValues(alpha: 0.18),
-        labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: p.text),
+        // Material's default selected icon colour is meant for a light
+        // indicator and turns near-black on dark mode; use terracota, like
+        // the sidebar's selected item.
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected) ? p.primary : p.text,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: states.contains(WidgetState.selected) ? p.primary : p.text,
+          ),
         ),
       ),
       // Material picks the secondary colour (the chord green) for the

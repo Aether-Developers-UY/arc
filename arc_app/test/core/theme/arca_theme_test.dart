@@ -55,4 +55,16 @@ void main() {
       expect(style.backgroundColor!.resolve({}), Colors.transparent);
     });
   }
+
+  for (final (label, theme) in [('light', ArcaTheme.light()), ('dark', ArcaTheme.dark())]) {
+    test('the selected bottom-bar item is terracota, readable on the bar ($label)', () {
+      final nav = theme.navigationBarTheme;
+      const selected = {WidgetState.selected};
+      final primary = theme.colorScheme.primary;
+
+      expect(nav.iconTheme!.resolve(selected)!.color, primary);
+      expect(nav.labelTextStyle!.resolve(selected)!.color, primary);
+      expect(nav.iconTheme!.resolve({})!.color, theme.colorScheme.onSurface);
+    });
+  }
 }
