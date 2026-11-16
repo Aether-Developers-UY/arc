@@ -283,6 +283,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                                 padding: const EdgeInsets.only(bottom: 96),
                                 itemCount: setlist.songs.length,
                                 onReorder: _onReorder,
+                                // Our own handle at the far left; the default
+                                // one sits on the right, over "Quitar".
+                                buildDefaultDragHandles: false,
                                 itemBuilder: (context, index) {
                                   final setlistSong = setlist.songs[index];
                                   return Padding(
@@ -290,8 +293,27 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                                     padding: const EdgeInsets.only(bottom: 10),
                                     child: ArcaCard(
                                       onTap: () => _openSong(setlistSong),
+                                      padding: const EdgeInsets.fromLTRB(4, 12, 8, 12),
                                       child: Row(
                                         children: [
+                                          ReorderableDragStartListener(
+                                            index: index,
+                                            child: MouseRegion(
+                                              cursor: SystemMouseCursors.grab,
+                                              child: Tooltip(
+                                                message: 'Arrastrar para reordenar',
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8, vertical: 8),
+                                                  child: Icon(
+                                                    Icons.drag_indicator,
+                                                    color: context.arca.textSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
                                           CircleAvatar(
                                             radius: 16,
                                             backgroundColor: Theme.of(context)
