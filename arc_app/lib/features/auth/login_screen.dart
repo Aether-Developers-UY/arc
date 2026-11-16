@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/layout.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_logo.dart';
+import '../../core/widgets/theme_mode_menu.dart';
 import 'auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -42,14 +43,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     return Scaffold(
-      body: wide
-          ? Row(
-              children: [
-                const Expanded(child: _BrandPanel()),
-                Expanded(child: Center(child: form)),
-              ],
-            )
-          : SafeArea(child: Center(child: SingleChildScrollView(child: form))),
+      body: Stack(
+        children: [
+          wide
+              ? Row(
+                  children: [
+                    const Expanded(child: _BrandPanel()),
+                    Expanded(child: Center(child: form)),
+                  ],
+                )
+              : SafeArea(child: Center(child: SingleChildScrollView(child: form))),
+          // Lets people pick Claro / Oscuro before signing in.
+          const Positioned(
+            top: 8,
+            right: 8,
+            child: SafeArea(child: ThemeModeMenu()),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -59,19 +70,25 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Navy in light mode; in dark mode a charcoal a step deeper than the
+    // background, so the panel still reads as its own area.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final title = isDark ? Theme.of(context).colorScheme.onSurface : Colors.white;
+    final subtitle = isDark ? context.arca.textSecondary : const Color(0xFF9DB4D0);
+
     return Container(
-      color: const Color(0xFF0B1F38),
+      color: isDark ? const Color(0xFF18191C) : const Color(0xFF0B1F38),
       padding: const EdgeInsets.all(56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const ArcaLogo(size: 64, showWordmark: true, wordmarkColor: Colors.white),
+          ArcaLogo(size: 64, showWordmark: true, wordmarkColor: title),
           const SizedBox(height: 32),
           Text(
             'Las canciones del ministerio, listas para el servicio.',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
+                  color: title,
                   height: 1.2,
                 ),
           ),
@@ -79,7 +96,7 @@ class _BrandPanel extends StatelessWidget {
           Text(
             'Letra, acordes y tonalidad en un solo lugar.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFF9DB4D0),
+                  color: subtitle,
                 ),
           ),
         ],
