@@ -135,6 +135,8 @@ class AutoScrollControls extends StatelessWidget {
       builder: (context, _) {
         if (scroller.status == AutoScrollStatus.off) {
           return FloatingActionButton(
+            // No hero: it can sit on screens that already have one.
+            heroTag: null,
             tooltip: 'Desplazamiento automático',
             onPressed: scroller.start,
             child: const Icon(Icons.keyboard_double_arrow_down),

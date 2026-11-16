@@ -13,6 +13,7 @@ import '../songs/song_list_provider.dart';
 import 'add_song_to_setlist_screen.dart';
 import 'setlist.dart';
 import 'setlist_list_provider.dart';
+import 'stage_screen.dart';
 
 class SetlistDetailScreen extends ConsumerStatefulWidget {
   const SetlistDetailScreen({super.key, required this.setlistId});
@@ -236,6 +237,18 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                               subtitle,
                               style: text.bodyLarge?.copyWith(color: context.arca.textSecondary),
                             ),
+                            if (setlist.songs.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              FilledButton.icon(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => StageScreen(setlist: setlist),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.slideshow_outlined),
+                                label: const Text('Modo escenario'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
