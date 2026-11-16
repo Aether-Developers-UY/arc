@@ -170,7 +170,7 @@ void main() {
     for (var i = 0; i < 6; i++) {
       await tap(tester, 'Más rápido');
     }
-    for (var i = 0; i < 120; i++) {
+    for (var i = 0; i < 200; i++) {
       await run(tester, 1);
     }
 
