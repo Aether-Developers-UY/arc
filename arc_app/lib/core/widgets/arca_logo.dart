@@ -24,6 +24,10 @@ class ArcaLogo extends StatelessWidget {
 
   static const _cream = Color(0xFFF0EDE4);
 
+  /// How far the name's baseline sits above the drawing's base, as a
+  /// fraction of [size]: a small lift that reads better to the eye.
+  static const wordmarkLift = 0.06;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -46,7 +50,8 @@ class ArcaLogo extends StatelessWidget {
         );
 
     // "Arca" sits on the base of the drawing: bottom-align it, then drop it
-    // by its descent so the letters' baseline meets the drawing's bottom.
+    // by its descent so the letters' baseline meets the drawing's bottom,
+    // lifted by [wordmarkLift].
     final painter = TextPainter(
       text: TextSpan(text: 'Arca', style: style),
       textDirection: TextDirection.ltr,
@@ -62,7 +67,7 @@ class ArcaLogo extends StatelessWidget {
         mark,
         SizedBox(width: size * 0.2),
         Transform.translate(
-          offset: Offset(0, descent),
+          offset: Offset(0, descent - size * wordmarkLift),
           child: Text('Arca', style: style),
         ),
       ],

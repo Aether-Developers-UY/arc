@@ -43,7 +43,7 @@ void main() {
     expect(image.color, Colors.white);
   });
 
-  testWidgets('the Arca name sits on the base of the drawing', (tester) async {
+  testWidgets('the Arca name sits just above the base of the drawing', (tester) async {
     await pumpLogo(tester, ArcaTheme.light());
 
     final imageBottom = tester.getBottomLeft(find.byType(Image)).dy;
@@ -53,6 +53,6 @@ void main() {
     addTearDown(painter.dispose);
     final baseline = tester.getTopLeft(text).dy +
         painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
-    expect(baseline, moreOrLessEquals(imageBottom, epsilon: 0.5));
+    expect(baseline, moreOrLessEquals(imageBottom - 40 * 0.06, epsilon: 0.5));
   });
 }
