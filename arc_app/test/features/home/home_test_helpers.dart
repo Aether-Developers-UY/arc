@@ -1,5 +1,7 @@
 import 'package:arc_app/features/annexes/active_annex_provider.dart';
 import 'package:arc_app/features/annexes/annex.dart';
+import 'package:arc_app/features/auth/auth_provider.dart';
+import 'package:arc_app/features/auth/auth_repository.dart';
 import 'package:arc_app/features/setlists/setlist.dart';
 import 'package:arc_app/features/setlists/setlist_repository.dart';
 import 'package:dio/dio.dart';
@@ -123,4 +125,15 @@ class FixedActiveAnnex extends ActiveAnnexNotifier {
   Future<void> select(Annex annex) async => state = annex;
 
   void set(Annex? annex) => state = annex;
+}
+
+/// Signed in as a member of [testAnnex]; reloading the profile changes
+/// nothing.
+class StaticAuth extends AuthNotifier {
+  @override
+  AuthState build() =>
+      AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local', annexes: [testAnnex]));
+
+  @override
+  Future<void> refreshUser() async {}
 }

@@ -1,5 +1,6 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/annexes/active_annex_provider.dart';
+import 'package:arc_app/features/auth/auth_provider.dart';
 import 'package:arc_app/features/home/pinned_setlist_card.dart';
 import 'package:arc_app/features/home/pinned_setlists_provider.dart';
 import 'package:arc_app/features/setlists/setlist_detail_screen.dart';
@@ -19,6 +20,7 @@ Future<void> pumpCard(WidgetTester tester, FakeSetlistRepository repository, {in
     ProviderScope(
       overrides: [
         setlistRepositoryProvider.overrideWithValue(repository),
+        authProvider.overrideWith(StaticAuth.new),
         activeAnnexProvider.overrideWith(() => FixedActiveAnnex(testAnnex)),
       ],
       child: MaterialApp(

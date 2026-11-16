@@ -5,7 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:arc_app/core/theme/arca_theme.dart';
+import 'package:arc_app/features/auth/auth_provider.dart';
+import 'package:arc_app/features/auth/auth_repository.dart';
 import 'package:arc_app/main.dart';
+import 'package:flutter/material.dart';
+
+class _SignedIn extends AuthNotifier {
+  @override
+  AuthState build() => AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local'));
+}
 
 void main() {
   setUp(() {
@@ -33,6 +41,30 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
 
+    expect(find.text('Ingresar'), findsOneWidget);
+  });
+
+  testWidgets('an expired session closes the open screens', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(overrides: [authProvider.overrideWith(_SignedIn.new)], child: const ArcApp()),
+    );
+    await tester.pump();
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+    navigator.push(MaterialPageRoute<void>(
+      builder: (_) => const Scaffold(body: Text('Pantalla abierta')),
+    ));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(find.text('Pantalla abierta'), findsOneWidget);
+
+    final container = ProviderScope.containerOf(tester.element(find.text('Pantalla abierta')));
+    await container.read(authProvider.notifier).sessionExpired();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(find.text('Pantalla abierta'), findsNothing);
     expect(find.text('Ingresar'), findsOneWidget);
   });
 }

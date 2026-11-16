@@ -10,12 +10,23 @@ void main() {
   runApp(const ProviderScope(child: ArcApp()));
 }
 
+final _navigatorKey = GlobalKey<NavigatorState>();
+
 class ArcApp extends ConsumerWidget {
   const ArcApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+
+    // Signing out swaps the home screen, but screens pushed on top of it
+    // (a setlist, an editor, a dialog) would stay open over the login:
+    // close them all. Matters when the server ends the session mid-use.
+    ref.listen(authProvider.select((s) => s.isLoggedIn), (wasLoggedIn, isLoggedIn) {
+      if (wasLoggedIn == true && !isLoggedIn) {
+        _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      }
+    });
 
     final Widget home;
     if (authState.isLoggedIn) {
@@ -29,6 +40,7 @@ class ArcApp extends ConsumerWidget {
     }
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Arca',
       debugShowCheckedModeBanner: false,
       theme: ArcaTheme.light(),
