@@ -13,7 +13,15 @@ class SetlistController extends Controller
     public function index(Request $request)
     {
         // Songs come along so the list can preview them (blocks, Inicio).
+        $annexIds = $request->user()->annexes()->pluck('annexes.id');
+        if ($request->filled('annex_id')) {
+            $annexId = (int) $request->input('annex_id');
+            abort_unless($annexIds->contains($annexId), 404);
+            $annexIds = collect([$annexId]);
+        }
+
         $setlists = Setlist::query()
+            ->whereIn('annex_id', $annexIds)
             ->with('setlistSongs.song')
             ->orderBy('service_date')
             ->get();
@@ -24,7 +32,8 @@ class SetlistController extends Controller
     public function store(StoreSetlistRequest $request)
     {
         $setlist = Setlist::create([
-            ...$request->validated(),
+            ...$request->safe()->only(['service_date', 'name']),
+            'annex_id' => $request->annexId(),
             'created_by' => $request->user()->id,
         ]);
 
@@ -33,6 +42,7 @@ class SetlistController extends Controller
 
     public function show(Setlist $setlist)
     {
+        $this->authorize('view', $setlist);
         $setlist->load('setlistSongs.song');
 
         return response()->json(['data' => $setlist]);
@@ -40,6 +50,7 @@ class SetlistController extends Controller
 
     public function update(UpdateSetlistRequest $request, Setlist $setlist)
     {
+        $this->authorize('view', $setlist);
         $setlist->update($request->validated());
 
         return response()->json(['data' => $setlist]);
@@ -47,6 +58,7 @@ class SetlistController extends Controller
 
     public function destroy(Setlist $setlist)
     {
+        $this->authorize('view', $setlist);
         $setlist->delete();
 
         return response()->noContent();

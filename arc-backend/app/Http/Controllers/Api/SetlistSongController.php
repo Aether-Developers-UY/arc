@@ -15,6 +15,7 @@ class SetlistSongController extends Controller
 {
     public function store(StoreSetlistSongRequest $request, Setlist $setlist)
     {
+        $this->authorize('view', $setlist);
         $song = Song::findOrFail($request->validated('song_id'));
         $nextPosition = $setlist->setlistSongs()->count();
 
@@ -29,6 +30,7 @@ class SetlistSongController extends Controller
 
     public function update(UpdateSetlistSongRequest $request, Setlist $setlist, SetlistSong $setlistSong)
     {
+        $this->authorize('view', $setlist);
         $setlistSong->update(['key' => $request->validated('key')]);
 
         return response()->json(['data' => $setlistSong]);
@@ -36,6 +38,7 @@ class SetlistSongController extends Controller
 
     public function destroy(Setlist $setlist, SetlistSong $setlistSong)
     {
+        $this->authorize('view', $setlist);
         $setlistSong->delete();
 
         return response()->noContent();
@@ -43,6 +46,7 @@ class SetlistSongController extends Controller
 
     public function reorder(ReorderSetlistSongsRequest $request, Setlist $setlist)
     {
+        $this->authorize('view', $setlist);
         DB::transaction(function () use ($request) {
             foreach ($request->validated('setlist_song_ids') as $position => $setlistSongId) {
                 SetlistSong::where('id', $setlistSongId)->update(['position' => $position]);

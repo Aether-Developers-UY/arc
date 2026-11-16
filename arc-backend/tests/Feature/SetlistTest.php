@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Annex;
 use App\Models\Setlist;
 use App\Models\SetlistSong;
 use App\Models\Song;
@@ -21,8 +22,8 @@ class SetlistTest extends TestCase
     public function test_an_authenticated_user_can_list_setlists_ordered_by_soonest_service_date(): void
     {
         $user = User::factory()->create();
-        Setlist::factory()->create(['created_by' => $user->id, 'service_date' => '2026-10-01']);
-        Setlist::factory()->create(['created_by' => $user->id, 'service_date' => '2026-09-20']);
+        $this->setlistFor($user, ['service_date' => '2026-10-01']);
+        $this->setlistFor($user, ['service_date' => '2026-09-20']);
 
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/setlists');
 
@@ -34,7 +35,7 @@ class SetlistTest extends TestCase
     public function test_the_setlist_list_includes_each_setlists_songs_in_order(): void
     {
         $user = User::factory()->create();
-        $setlist = Setlist::factory()->create(['created_by' => $user->id]);
+        $setlist = $this->setlistFor($user);
         $second = Song::factory()->create(['title' => 'Digno', 'created_by' => $user->id]);
         $first = Song::factory()->create(['title' => 'Sublime Gracia', 'created_by' => $user->id]);
         SetlistSong::factory()->create(['setlist_id' => $setlist->id, 'song_id' => $second->id, 'position' => 1]);
@@ -50,6 +51,7 @@ class SetlistTest extends TestCase
     public function test_an_authenticated_user_can_create_a_setlist(): void
     {
         $user = User::factory()->create();
+        $user->annexes()->attach(Annex::factory()->create());
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/setlists', [
             'service_date' => '2026-09-27',
@@ -76,7 +78,7 @@ class SetlistTest extends TestCase
     public function test_an_authenticated_user_can_view_a_single_setlist(): void
     {
         $user = User::factory()->create();
-        $setlist = Setlist::factory()->create(['created_by' => $user->id]);
+        $setlist = $this->setlistFor($user);
 
         $response = $this->actingAs($user, 'sanctum')->getJson("/api/setlists/{$setlist->id}");
 
@@ -86,7 +88,7 @@ class SetlistTest extends TestCase
     public function test_an_authenticated_user_can_update_a_setlist(): void
     {
         $user = User::factory()->create();
-        $setlist = Setlist::factory()->create(['created_by' => $user->id, 'name' => 'Old name']);
+        $setlist = $this->setlistFor($user, ['name' => 'Old name']);
 
         $response = $this->actingAs($user, 'sanctum')->putJson("/api/setlists/{$setlist->id}", [
             'service_date' => $setlist->service_date->format('Y-m-d'),
@@ -100,7 +102,7 @@ class SetlistTest extends TestCase
     public function test_an_authenticated_user_can_delete_a_setlist(): void
     {
         $user = User::factory()->create();
-        $setlist = Setlist::factory()->create(['created_by' => $user->id]);
+        $setlist = $this->setlistFor($user);
 
         $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/setlists/{$setlist->id}");
 
