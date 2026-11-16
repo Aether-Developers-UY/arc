@@ -11,7 +11,7 @@ class Setlist extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['service_date', 'name', 'created_by'];
+    protected $fillable = ['service_date', 'name', 'created_by', 'annex_id'];
 
     protected function casts(): array
     {
@@ -21,6 +21,11 @@ class Setlist extends Model
     public function setlistSongs(): HasMany
     {
         return $this->hasMany(SetlistSong::class)->orderBy('position');
+    }
+
+    public function annex(): BelongsTo
+    {
+        return $this->belongsTo(Annex::class);
     }
 
     public function creator(): BelongsTo
