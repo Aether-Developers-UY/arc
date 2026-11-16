@@ -42,7 +42,7 @@ void main() {
 
     expect(find.text('Centro'), findsOneWidget);
     expect(find.byIcon(Icons.church_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
   });
 
   testWidgets('choosing another annex makes it active', (tester) async {
@@ -57,11 +57,11 @@ void main() {
     expect(find.text('Norte'), findsOneWidget);
   });
 
-  testWidgets('with one annex there is no dropdown arrow', (tester) async {
+  testWidgets('with one annex the arrow still shows it is a menu', (tester) async {
     await pumpSelector(tester, [centro]);
 
     expect(find.text('Centro'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
   });
 
   for (final (label, annexes, text) in [('with an annex', [centro], 'Centro'), ('without', <Annex>[], 'Sin anexo')]) {
@@ -76,6 +76,8 @@ void main() {
 
   testWidgets('without annexes says so', (tester) async {
     await pumpSelector(tester, []);
+
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
 
     expect(find.text('Sin anexo'), findsOneWidget);
   });

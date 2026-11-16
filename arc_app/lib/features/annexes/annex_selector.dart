@@ -9,8 +9,8 @@ import 'annex.dart';
 const _manage = 'manage';
 
 /// "⛪ Centro ▾" — always shows where the user is standing, and lets
-/// them switch annex or go manage their annexes. With a single annex the
-/// arrow goes away but the menu still opens, to reach "Gestionar".
+/// them switch annex or go manage their annexes. The arrow is always
+/// shown: even with one annex the menu leads to "Gestionar".
 class AnnexSelector extends ConsumerWidget {
   const AnnexSelector({super.key, required this.onManage});
 
@@ -68,7 +68,9 @@ class AnnexSelector extends ConsumerWidget {
                     ),
               ),
             ),
-            if (annexes.length > 1) const Icon(Icons.arrow_drop_down, size: 20),
+            const SizedBox(width: 2),
+            // Always there, so it reads as a menu even with one annex.
+            Icon(Icons.keyboard_arrow_down, size: 20, color: color),
           ],
         ),
       ),
