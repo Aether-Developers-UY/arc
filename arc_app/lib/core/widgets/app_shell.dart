@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/admin/admin_screen.dart';
 import '../../features/annexes/annex_selector.dart';
 import '../../features/annexes/my_annexes_screen.dart';
 import '../../features/auth/auth_provider.dart';
@@ -24,6 +25,9 @@ const _destinations = [
   _Destination('Canciones', Icons.library_music_outlined, Icons.library_music),
   _Destination('Setlists', Icons.event_note_outlined, Icons.event_note),
 ];
+
+const _adminDestination =
+    _Destination('Administración', Icons.admin_panel_settings_outlined, Icons.admin_panel_settings);
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -49,8 +53,13 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = ref.watch(authProvider.select((s) => s.user?.isAdmin ?? false));
+    final destinations = [..._destinations, if (isAdmin) _adminDestination];
+    // Losing the admin role while on its tab falls back to Inicio.
+    final index = _index < destinations.length ? _index : 0;
+
     final body = IndexedStack(
-      index: _index,
+      index: index,
       children: [
         HomeScreen(
           onOpenSongs: () => _select(1),
@@ -59,6 +68,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
         const SongListScreen(),
         SetlistListScreen(onChooseAnnexes: _manageAnnexes),
+        if (isAdmin) const AdminScreen(),
       ],
     );
 
@@ -67,7 +77,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         body: Row(
           children: [
             _Sidebar(
-              selectedIndex: _index,
+              destinations: destinations,
+              selectedIndex: index,
               onSelect: _select,
               onLogout: _logout,
               userName: ref.watch(authProvider).user?.name,
@@ -110,10 +121,10 @@ class _AppShellState extends ConsumerState<AppShell> {
       ),
       body: body,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+        selectedIndex: index,
         onDestinationSelected: _select,
         destinations: [
-          for (final d in _destinations)
+          for (final d in destinations)
             NavigationDestination(
               icon: Icon(d.icon),
               selectedIcon: Icon(d.selectedIcon),
@@ -127,6 +138,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
+    required this.destinations,
     required this.selectedIndex,
     required this.onSelect,
     required this.onLogout,
@@ -135,6 +147,7 @@ class _Sidebar extends StatelessWidget {
     required this.onManageAnnexes,
   });
 
+  final List<_Destination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
@@ -158,9 +171,9 @@ class _Sidebar extends StatelessWidget {
           ),
           annexSelector,
           const SizedBox(height: 16),
-          for (var i = 0; i < _destinations.length; i++)
+          for (var i = 0; i < destinations.length; i++)
             _SidebarItem(
-              destination: _destinations[i],
+              destination: destinations[i],
               selected: i == selectedIndex,
               onTap: () => onSelect(i),
             ),

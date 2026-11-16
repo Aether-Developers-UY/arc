@@ -1,5 +1,6 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/core/widgets/app_shell.dart';
+import 'package:arc_app/features/admin/admin_repository.dart';
 import 'package:arc_app/features/annexes/annex_repository.dart';
 import 'package:arc_app/features/annexes/my_annexes_screen.dart';
 import 'package:arc_app/features/auth/auth_provider.dart';
@@ -12,13 +13,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/admin/admin_screen_test.dart' show FakeAdminRepository;
 import '../../features/annexes/my_annexes_screen_test.dart' show FakeAnnexRepository;
 import '../../features/home/home_test_helpers.dart';
 
 class _LoggedInAuth extends AuthNotifier {
+  _LoggedInAuth({this.role = 'standard'});
+  final String role;
+
   @override
   AuthState build() => AuthState(
-        user: AuthUser(id: 1, name: 'Test', email: 'test@arc.local', annexes: [testAnnex]),
+        user: AuthUser(
+          id: 1,
+          name: 'Test',
+          email: 'test@arc.local',
+          role: role,
+          annexes: [testAnnex],
+        ),
       );
 }
 
@@ -34,6 +45,7 @@ Future<FakeSetlistRepository> pumpShell(
   WidgetTester tester, {
   required Size size,
   List<int> pinned = const [],
+  bool asAdmin = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -46,10 +58,11 @@ Future<FakeSetlistRepository> pumpShell(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authProvider.overrideWith(_LoggedInAuth.new),
+        authProvider.overrideWith(() => _LoggedInAuth(role: asAdmin ? 'admin' : 'standard')),
         songListProvider.overrideWith(_NoSongs.new),
         setlistRepositoryProvider.overrideWithValue(repository),
         annexRepositoryProvider.overrideWithValue(FakeAnnexRepository([testAnnex], {testAnnex.id})),
+        adminRepositoryProvider.overrideWithValue(FakeAdminRepository()),
       ],
       child: MaterialApp(theme: ArcaTheme.light(), home: const AppShell()),
     ),
@@ -93,6 +106,18 @@ void main() {
       expect(find.byType(MyAnnexesScreen), findsOneWidget);
     });
   }
+
+  testWidgets('the Administración tab only shows for admins', (tester) async {
+    await pumpShell(tester, size: const Size(1200, 900));
+
+    expect(find.text('Administración'), findsNothing);
+  });
+
+  testWidgets('admins get the Administración tab', (tester) async {
+    await pumpShell(tester, size: const Size(1200, 900), asAdmin: true);
+
+    expect(find.text('Administración'), findsOneWidget);
+  });
 
   testWidgets('Biblioteca de canciones jumps to the Canciones tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900));
