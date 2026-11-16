@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SetlistController;
 use App\Http\Controllers\Api\SetlistSongController;
 use App\Http\Controllers\Api\SongController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', fn () => response()->json(['status' => 'ok']));
@@ -33,5 +34,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/annexes', [AnnexController::class, 'store']);
         Route::put('/annexes/{annex}', [AnnexController::class, 'update']);
         Route::delete('/annexes/{annex}', [AnnexController::class, 'destroy']);
+        Route::apiResource('users', UserController::class)->except('show');
     });
 });
