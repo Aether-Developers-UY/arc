@@ -10,6 +10,7 @@ class ArcaLogo extends StatelessWidget {
     this.showWordmark = false,
     this.wordmarkColor,
     this.markColor,
+    this.wordmarkSize,
   });
 
   final double size;
@@ -17,6 +18,9 @@ class ArcaLogo extends StatelessWidget {
 
   /// Colour of the "Arca" word; defaults to the theme's text colour.
   final Color? wordmarkColor;
+
+  /// Font size of "Arca"; defaults to half of [size].
+  final double? wordmarkSize;
 
   /// Colour of the drawing; defaults to terracota (light) or cream (dark).
   /// Set it on coloured panels.
@@ -44,7 +48,7 @@ class ArcaLogo extends StatelessWidget {
 
     final style = DefaultTextStyle.of(context).style.merge(
           theme.textTheme.headlineSmall?.copyWith(
-            fontSize: size * 0.5,
+            fontSize: wordmarkSize ?? size * 0.5,
             color: wordmarkColor ?? theme.colorScheme.onSurface,
           ),
         );

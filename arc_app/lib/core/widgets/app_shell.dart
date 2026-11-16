@@ -96,7 +96,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: const ArcaLogo(size: 36, showWordmark: true),
+        title: const ArcaLogo(size: 36, showWordmark: true, wordmarkSize: 22),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
           child: Padding(

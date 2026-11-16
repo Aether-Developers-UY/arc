@@ -146,6 +146,12 @@ void main() {
     expect(selector, lessThan(divider));
   });
 
+  testWidgets('on the phone the Arca name is larger', (tester) async {
+    await pumpShell(tester, size: const Size(390, 844));
+
+    expect(tester.widget<Text>(find.text('Arca')).style!.fontSize, 22);
+  });
+
   testWidgets('admins get the Administración tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900), asAdmin: true);
 
