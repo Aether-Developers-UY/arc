@@ -6,6 +6,8 @@ import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/page_header.dart';
+import '../annexes/active_annex_provider.dart';
+import '../annexes/no_annex_prompt.dart';
 import 'pin_setlist_sheet.dart';
 import 'pinned_setlist_card.dart';
 import 'pinned_setlists_provider.dart';
@@ -13,10 +15,18 @@ import 'pinned_setlists_provider.dart';
 /// Inicio: the setlists pinned on this device, shortcuts to the library
 /// and the setlists, and room for future sections.
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key, required this.onOpenSongs, required this.onOpenSetlists});
+  const HomeScreen({
+    super.key,
+    required this.onOpenSongs,
+    required this.onOpenSetlists,
+    required this.onChooseAnnexes,
+  });
 
   final VoidCallback onOpenSongs;
   final VoidCallback onOpenSetlists;
+
+  /// Opens Mis anexos, from the prompt shown while the user has none.
+  final VoidCallback onChooseAnnexes;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,17 +52,22 @@ class HomeScreen extends ConsumerWidget {
           const PageHeader(title: 'Inicio', subtitle: 'Tus cultos a mano'),
           Text('Fijados', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
-          ref.watch(pinnedSetlistsProvider).when(
-                // Never show the empty state before the stored ids are read.
-                loading: () => const SizedBox(
-                  height: 120,
-                  child: Center(child: CircularProgressIndicator()),
+          if (ref.watch(activeAnnexProvider) == null)
+            _OutlinedBlock(child: NoAnnexPrompt(onChoose: onChooseAnnexes))
+          else
+            ref
+                .watch(pinnedSetlistsProvider)
+                .when(
+                  // Never show the empty state before the stored ids are read.
+                  loading: () => const SizedBox(
+                    height: 120,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (_, _) => _EmptyPins(onOpenSetlists: onOpenSetlists),
+                  data: (ids) => ids.isEmpty
+                      ? _EmptyPins(onOpenSetlists: onOpenSetlists)
+                      : _PinnedRow(ids: ids, wide: wide, onOpenSetlists: onOpenSetlists),
                 ),
-                error: (_, _) => _EmptyPins(onOpenSetlists: onOpenSetlists),
-                data: (ids) => ids.isEmpty
-                    ? _EmptyPins(onOpenSetlists: onOpenSetlists)
-                    : _PinnedRow(ids: ids, wide: wide, onOpenSetlists: onOpenSetlists),
-              ),
           const SizedBox(height: 28),
           if (wide)
             Row(

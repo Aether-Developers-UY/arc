@@ -14,7 +14,9 @@ import '../../features/home/home_test_helpers.dart';
 
 class _LoggedInAuth extends AuthNotifier {
   @override
-  AuthState build() => AuthState(user: AuthUser(id: 1, name: 'Test', email: 'test@arc.local'));
+  AuthState build() => AuthState(
+        user: AuthUser(id: 1, name: 'Test', email: 'test@arc.local', annexes: [testAnnex]),
+      );
 }
 
 class _NoSongs extends SongListNotifier {

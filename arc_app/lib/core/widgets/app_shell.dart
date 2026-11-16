@@ -47,7 +47,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     final body = IndexedStack(
       index: _index,
       children: [
-        HomeScreen(onOpenSongs: () => _select(1), onOpenSetlists: () => _select(2)),
+        HomeScreen(
+          onOpenSongs: () => _select(1),
+          onOpenSetlists: () => _select(2),
+          // Task 9 wires this to Mis anexos.
+          onChooseAnnexes: () {},
+        ),
         const SongListScreen(),
         // Task 9 wires this to Mis anexos.
         SetlistListScreen(onChooseAnnexes: () {}),

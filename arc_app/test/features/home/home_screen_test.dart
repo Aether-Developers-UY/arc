@@ -13,6 +13,7 @@ import 'home_test_helpers.dart';
 
 int songsTaps = 0;
 int setlistsTaps = 0;
+int chooseAnnexTaps = 0;
 
 Future<void> pumpHome(
   WidgetTester tester, {
@@ -21,6 +22,7 @@ Future<void> pumpHome(
   Size size = const Size(1200, 1000),
   bool settle = true,
   Map<int, Object> failing = const {},
+  bool withoutAnnex = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -39,7 +41,7 @@ Future<void> pumpHome(
     ProviderScope(
       overrides: [
         setlistRepositoryProvider.overrideWithValue(repository),
-        activeAnnexProvider.overrideWith(() => FixedActiveAnnex(testAnnex)),
+        activeAnnexProvider.overrideWith(() => FixedActiveAnnex(withoutAnnex ? null : testAnnex)),
       ],
       child: MaterialApp(
         theme: ArcaTheme.light(),
@@ -47,6 +49,7 @@ Future<void> pumpHome(
           body: HomeScreen(
             onOpenSongs: () => songsTaps++,
             onOpenSetlists: () => setlistsTaps++,
+            onChooseAnnexes: () => chooseAnnexTaps++,
           ),
         ),
       ),
@@ -58,6 +61,16 @@ Future<void> pumpHome(
 void main() {
   setUp(() {
     ArcaTheme.useGoogleFonts = false;
+  });
+
+  testWidgets('without annexes shows the join prompt', (tester) async {
+    chooseAnnexTaps = 0;
+    await pumpHome(tester, pinned: [1], existing: [1], withoutAnnex: true);
+
+    expect(find.text('Todavía no estás en ningún anexo'), findsOneWidget);
+    expect(find.text('Todavía no elegiste un culto'), findsNothing);
+    await tester.tap(find.text('Elegir anexos'));
+    expect(chooseAnnexTaps, 1);
   });
 
   testWidgets('with no pins shows the empty state and the shortcuts', (tester) async {
