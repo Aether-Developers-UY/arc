@@ -38,17 +38,32 @@ class ArcaLogo extends StatelessWidget {
     );
     if (!showWordmark) return mark;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        mark,
-        SizedBox(width: size * 0.2),
-        Text(
-          'Arca',
-          style: theme.textTheme.headlineSmall?.copyWith(
+    final style = DefaultTextStyle.of(context).style.merge(
+          theme.textTheme.headlineSmall?.copyWith(
             fontSize: size * 0.5,
             color: wordmarkColor ?? theme.colorScheme.onSurface,
           ),
+        );
+
+    // "Arca" sits on the base of the drawing: bottom-align it, then drop it
+    // by its descent so the letters' baseline meets the drawing's bottom.
+    final painter = TextPainter(
+      text: TextSpan(text: 'Arca', style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final descent = painter.height - painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+    painter.dispose();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        mark,
+        SizedBox(width: size * 0.2),
+        Transform.translate(
+          offset: Offset(0, descent),
+          child: Text('Arca', style: style),
         ),
       ],
     );

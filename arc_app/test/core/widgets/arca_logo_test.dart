@@ -1,6 +1,7 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/core/widgets/arca_logo.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<Image> pumpLogo(WidgetTester tester, ThemeData theme, {Color? markColor}) async {
@@ -40,5 +41,18 @@ void main() {
     final image = await pumpLogo(tester, ArcaTheme.light(), markColor: Colors.white);
 
     expect(image.color, Colors.white);
+  });
+
+  testWidgets('the Arca name sits on the base of the drawing', (tester) async {
+    await pumpLogo(tester, ArcaTheme.light());
+
+    final imageBottom = tester.getBottomLeft(find.byType(Image)).dy;
+    final text = find.text('Arca');
+    final paragraph = tester.renderObject<RenderParagraph>(text);
+    final painter = TextPainter(text: paragraph.text, textDirection: TextDirection.ltr)..layout();
+    addTearDown(painter.dispose);
+    final baseline = tester.getTopLeft(text).dy +
+        painter.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+    expect(baseline, moreOrLessEquals(imageBottom, epsilon: 0.5));
   });
 }
