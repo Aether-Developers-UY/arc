@@ -19,6 +19,8 @@ class StoreAttachmentRequest extends FormRequest
                 'required',
                 'file',
                 'max:20480', // 20MB in kilobytes
+                // mp4 also covers .m4a files, which are often detected as
+                // video/mp4; keep it even if only audio is expected.
                 'mimes:mp3,mp4,m4a,wav,pdf',
             ],
         ];
@@ -28,7 +30,7 @@ class StoreAttachmentRequest extends FormRequest
     {
         return [
             'file.max' => 'El archivo supera el tamaño máximo permitido.',
-            'file.mimetypes' => 'El tipo de archivo no está permitido.',
+            'file.mimes' => 'Solo se admiten archivos MP3, WAV, M4A, MP4 o PDF.',
         ];
     }
 }

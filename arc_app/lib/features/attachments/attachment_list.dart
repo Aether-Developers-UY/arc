@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../auth/auth_provider.dart';
 import '../songs/song.dart';
 import 'attachment_repository.dart';
+import 'attachment_types.dart';
 
 final attachmentRepositoryProvider =
     Provider((ref) => AttachmentRepository(ref.watch(apiClientProvider)));
@@ -55,13 +56,12 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
   Future<void> _pickAndUpload() async {
     final files = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['mp3', 'wav', 'm4a', 'pdf'],
+      allowedExtensions: attachmentExtensions,
     );
     if (files.isEmpty) return;
 
     final file = files.first;
-    final extension = file.extension?.toLowerCase();
-    final type = extension == 'pdf' ? 'pdf' : 'audio';
+    final type = attachmentTypeFor(file.extension);
 
     setState(() {
       _isUploading = true;

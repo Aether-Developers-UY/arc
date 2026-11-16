@@ -78,7 +78,21 @@ class AttachmentTest extends TestCase
             'file' => $file,
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors(['file']);
+        $response->assertStatus(422)->assertJsonValidationErrors([
+            'file' => 'Solo se admiten archivos MP3, WAV, M4A, MP4 o PDF.',
+        ]);
+    }
+
+    public function test_an_mp4_audio_can_be_uploaded(): void
+    {
+        $user = User::factory()->create();
+        $song = Song::factory()->create(['created_by' => $user->id]);
+        $file = UploadedFile::fake()->create('ensayo.mp4', 100, 'video/mp4');
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/songs/{$song->id}/attachments", [
+            'type' => 'audio',
+            'file' => $file,
+        ])->assertCreated();
     }
 
     public function test_an_authenticated_user_can_delete_an_attachment(): void
