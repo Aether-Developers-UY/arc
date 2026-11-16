@@ -6,8 +6,11 @@ class SetlistRepository {
 
   final ApiClient _apiClient;
 
-  Future<List<Setlist>> list() async {
-    final response = await _apiClient.dio.get('/setlists');
+  Future<List<Setlist>> list({int? annexId}) async {
+    final response = await _apiClient.dio.get(
+      '/setlists',
+      queryParameters: {'annex_id': ?annexId},
+    );
     return (response.data['data'] as List<dynamic>)
         .map((json) => Setlist.fromJson(json as Map<String, dynamic>))
         .toList();
@@ -18,8 +21,11 @@ class SetlistRepository {
     return Setlist.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
-  Future<Setlist> create(Setlist setlist) async {
-    final response = await _apiClient.dio.post('/setlists', data: setlist.toRequestJson());
+  Future<Setlist> create(Setlist setlist, {required int annexId}) async {
+    final response = await _apiClient.dio.post(
+      '/setlists',
+      data: {...setlist.toRequestJson(), 'annex_id': annexId},
+    );
     return Setlist.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 

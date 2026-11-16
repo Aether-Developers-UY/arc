@@ -8,6 +8,8 @@ import '../../core/widgets/content_frame.dart';
 import '../../core/view_mode.dart';
 import '../../core/widgets/page_header.dart';
 import '../../core/widgets/view_mode_toggle.dart';
+import '../annexes/active_annex_provider.dart';
+import '../annexes/no_annex_prompt.dart';
 import 'setlist.dart';
 import 'setlist_block.dart';
 import 'setlist_detail_screen.dart';
@@ -17,12 +19,16 @@ import 'setlist_list_provider.dart';
 const _viewModeKey = 'setlist_list_view';
 
 class SetlistListScreen extends ConsumerWidget {
-  const SetlistListScreen({super.key});
+  const SetlistListScreen({super.key, required this.onChooseAnnexes});
+
+  /// Opens Mis anexos, from the prompt shown while the user has none.
+  final VoidCallback onChooseAnnexes;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final setlistsAsync = ref.watch(setlistListProvider);
     final viewMode = ref.watch(viewModeProvider(_viewModeKey)).value ?? ViewMode.grid;
+    final hasAnnex = ref.watch(activeAnnexProvider) != null;
 
     return ContentFrame(
       child: Column(
@@ -31,13 +37,15 @@ class SetlistListScreen extends ConsumerWidget {
           PageHeader(
             title: 'Setlists',
             subtitle: 'Las canciones de cada servicio',
-            trailing: FilledButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Nuevo setlist'),
-              onPressed: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const SetlistEditorScreen())),
-            ),
+            trailing: !hasAnnex
+                ? null
+                : FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nuevo setlist'),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).push(MaterialPageRoute(builder: (_) => const SetlistEditorScreen())),
+                  ),
           ),
           const Align(
             alignment: Alignment.centerRight,
@@ -45,49 +53,52 @@ class SetlistListScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: setlistsAsync.when(
-              data: (setlists) => setlists.isEmpty
-                  ? const _EmptyState(
-                      icon: Icons.event_note_outlined,
-                      title: 'Todavía no hay setlists',
-                      message: 'Creá el del próximo servicio con «Nuevo setlist».',
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => ref.read(setlistListProvider.notifier).refresh(),
-                      child: viewMode == ViewMode.grid
-                          ? GridView.builder(
-                              padding: const EdgeInsets.only(bottom: 24),
-                              // Fits the date row, name, three songs and the
-                              // total, like the pinned blocks in Inicio.
-                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 380,
-                                mainAxisExtent: 204,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                              ),
-                              itemCount: setlists.length,
-                              itemBuilder: (context, index) => SetlistBlock(
-                                setlist: setlists[index],
-                                onTap: () => _openSetlist(context, ref, setlists[index].id),
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.only(bottom: 24),
-                              itemCount: setlists.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 10),
-                              itemBuilder: (context, index) => _SetlistCard(
-                                setlist: setlists[index],
-                                onTap: () => _openSetlist(context, ref, setlists[index].id),
-                              ),
-                            ),
+            child: !hasAnnex
+                ? NoAnnexPrompt(onChoose: onChooseAnnexes)
+                : setlistsAsync.when(
+                    data: (setlists) => setlists.isEmpty
+                        ? const _EmptyState(
+                            icon: Icons.event_note_outlined,
+                            title: 'Todavía no hay setlists',
+                            message: 'Creá el del próximo servicio con «Nuevo setlist».',
+                          )
+                        : RefreshIndicator(
+                            onRefresh: () => ref.read(setlistListProvider.notifier).refresh(),
+                            child: viewMode == ViewMode.grid
+                                ? GridView.builder(
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    // Fits the date row, name, three songs and the
+                                    // total, like the pinned blocks in Inicio.
+                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 380,
+                                      mainAxisExtent: 204,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                    ),
+                                    itemCount: setlists.length,
+                                    itemBuilder: (context, index) => SetlistBlock(
+                                      setlist: setlists[index],
+                                      onTap: () => _openSetlist(context, ref, setlists[index].id),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    itemCount: setlists.length,
+                                    separatorBuilder: (context, index) =>
+                                        const SizedBox(height: 10),
+                                    itemBuilder: (context, index) => _SetlistCard(
+                                      setlist: setlists[index],
+                                      onTap: () => _openSetlist(context, ref, setlists[index].id),
+                                    ),
+                                  ),
+                          ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => const _EmptyState(
+                      icon: Icons.cloud_off_outlined,
+                      title: 'No se pudieron cargar los setlists',
+                      message: 'Revisá tu conexión y deslizá hacia abajo para reintentar.',
                     ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => const _EmptyState(
-                icon: Icons.cloud_off_outlined,
-                title: 'No se pudieron cargar los setlists',
-                message: 'Revisá tu conexión y deslizá hacia abajo para reintentar.',
-              ),
-            ),
+                  ),
           ),
         ],
       ),

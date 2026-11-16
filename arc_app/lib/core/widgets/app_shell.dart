@@ -49,7 +49,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       children: [
         HomeScreen(onOpenSongs: () => _select(1), onOpenSetlists: () => _select(2)),
         const SongListScreen(),
-        const SetlistListScreen(),
+        // Task 9 wires this to Mis anexos.
+        SetlistListScreen(onChooseAnnexes: () {}),
       ],
     );
 

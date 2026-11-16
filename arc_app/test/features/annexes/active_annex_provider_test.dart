@@ -20,7 +20,7 @@ class FakeAuth extends AuthNotifier {
 }
 
 Future<ProviderContainer> containerWith(List<Annex> annexes, {int? stored}) async {
-  SharedPreferences.setMockInitialValues({if (stored != null) 'active_annex_id': stored});
+  SharedPreferences.setMockInitialValues({'active_annex_id': ?stored});
   final container = ProviderContainer(
     overrides: [authProvider.overrideWith(() => FakeAuth(annexes))],
   );

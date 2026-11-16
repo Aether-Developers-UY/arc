@@ -1,4 +1,6 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
+import 'package:arc_app/features/annexes/active_annex_provider.dart';
+import 'package:arc_app/features/annexes/annex.dart';
 import 'package:arc_app/features/setlists/setlist_block.dart';
 import 'package:arc_app/features/setlists/setlist_detail_screen.dart';
 import 'package:arc_app/features/setlists/setlist_list_provider.dart';
@@ -16,6 +18,8 @@ Future<FakeSetlistRepository> pumpSetlists(
   WidgetTester tester, {
   Map<String, Object> stored = const {},
   Size size = const Size(1200, 1000),
+  bool withoutAnnex = false,
+  VoidCallback? onChooseAnnexes,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -27,10 +31,13 @@ Future<FakeSetlistRepository> pumpSetlists(
   ]);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [setlistRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        setlistRepositoryProvider.overrideWithValue(repository),
+        activeAnnexProvider.overrideWith(() => FixedActiveAnnex(withoutAnnex ? null : testAnnex)),
+      ],
       child: MaterialApp(
         theme: ArcaTheme.light(),
-        home: const Scaffold(body: SetlistListScreen()),
+        home: Scaffold(body: SetlistListScreen(onChooseAnnexes: onChooseAnnexes ?? () {})),
       ),
     ),
   );
@@ -41,6 +48,35 @@ Future<FakeSetlistRepository> pumpSetlists(
 void main() {
   setUp(() {
     ArcaTheme.useGoogleFonts = false;
+  });
+
+  testWidgets('lists the setlists of the active annex', (tester) async {
+    final repository = await pumpSetlists(tester);
+
+    expect(repository.listedAnnexIds, [testAnnex.id]);
+  });
+
+  testWidgets('changing the active annex reloads the list', (tester) async {
+    final repository = await pumpSetlists(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byType(SetlistListScreen)));
+
+    (container.read(activeAnnexProvider.notifier) as FixedActiveAnnex)
+        .set(Annex(id: 7, name: 'Norte'));
+    await tester.pumpAndSettle();
+
+    expect(repository.listedAnnexIds, [testAnnex.id, 7]);
+  });
+
+  testWidgets('without annexes shows the join prompt', (tester) async {
+    var chose = 0;
+    final repository = await pumpSetlists(tester, withoutAnnex: true, onChooseAnnexes: () => chose++);
+
+    expect(find.text('Todavía no estás en ningún anexo'), findsOneWidget);
+    expect(find.text('Nuevo setlist'), findsNothing);
+    expect(repository.listedAnnexIds, isEmpty);
+
+    await tester.tap(find.text('Elegir anexos'));
+    expect(chose, 1);
   });
 
   testWidgets('shows the setlists as blocks by default, like Inicio', (tester) async {

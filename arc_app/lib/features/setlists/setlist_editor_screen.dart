@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/content_frame.dart';
 
+import '../annexes/active_annex_provider.dart';
 import 'setlist.dart';
 import 'setlist_list_provider.dart';
 
@@ -56,7 +57,12 @@ class _SetlistEditorScreenState extends ConsumerState<SetlistEditorScreen> {
     try {
       final repository = ref.read(setlistRepositoryProvider);
       if (widget.existingSetlist == null) {
-        await repository.create(setlist);
+        final annex = ref.read(activeAnnexProvider);
+        if (annex == null) {
+          setState(() => _errorMessage = 'Unite a un anexo para crear setlists.');
+          return;
+        }
+        await repository.create(setlist, annexId: annex.id);
       } else {
         await repository.update(setlist);
       }

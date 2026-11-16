@@ -31,6 +31,7 @@ class Setlist {
     required this.serviceDate,
     required this.name,
     required this.songs,
+    this.annexId,
   });
 
   factory Setlist.fromJson(Map<String, dynamic> json) => Setlist(
@@ -40,6 +41,7 @@ class Setlist {
         songs: (json['setlist_songs'] as List<dynamic>? ?? [])
             .map((s) => SetlistSong.fromJson(s as Map<String, dynamic>))
             .toList(),
+        annexId: json['annex_id'] as int?,
       );
 
   Map<String, dynamic> toRequestJson() => {
@@ -52,4 +54,7 @@ class Setlist {
   final DateTime serviceDate;
   final String? name;
   final List<SetlistSong> songs;
+
+  /// The annex it belongs to. Null only in data from before annexes.
+  final int? annexId;
 }

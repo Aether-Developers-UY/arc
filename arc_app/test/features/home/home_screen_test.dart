@@ -1,4 +1,5 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
+import 'package:arc_app/features/annexes/active_annex_provider.dart';
 import 'package:arc_app/features/home/home_screen.dart';
 import 'package:arc_app/features/home/pinned_setlist_card.dart';
 import 'package:arc_app/features/home/pinned_setlists_provider.dart';
@@ -36,7 +37,10 @@ Future<void> pumpHome(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [setlistRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        setlistRepositoryProvider.overrideWithValue(repository),
+        activeAnnexProvider.overrideWith(() => FixedActiveAnnex(testAnnex)),
+      ],
       child: MaterialApp(
         theme: ArcaTheme.light(),
         home: Scaffold(

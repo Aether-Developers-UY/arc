@@ -1,3 +1,5 @@
+import 'package:arc_app/features/annexes/active_annex_provider.dart';
+import 'package:arc_app/features/annexes/annex.dart';
 import 'package:arc_app/features/setlists/setlist.dart';
 import 'package:arc_app/features/setlists/setlist_repository.dart';
 import 'package:dio/dio.dart';
@@ -13,8 +15,31 @@ class FakeSetlistRepository implements SetlistRepository {
   final Map<int, Object> errors = {};
   final Map<int, int> getOneCalls = {};
 
+  /// The annex each `list` call asked for, in order.
+  final List<int?> listedAnnexIds = [];
+
   @override
-  Future<List<Setlist>> list() async => setlists.values.toList();
+  Future<List<Setlist>> list({int? annexId}) async {
+    listedAnnexIds.add(annexId);
+    return setlists.values.where((s) => annexId == null || s.annexId == null || s.annexId == annexId).toList();
+  }
+
+  /// The annex each created setlist was sent to.
+  final List<int> createdInAnnexIds = [];
+
+  @override
+  Future<Setlist> create(Setlist setlist, {required int annexId}) async {
+    createdInAnnexIds.add(annexId);
+    final created = Setlist(
+      id: setlists.length + 100,
+      serviceDate: setlist.serviceDate,
+      name: setlist.name,
+      songs: const [],
+      annexId: annexId,
+    );
+    setlists[created.id] = created;
+    return created;
+  }
 
   @override
   Future<Setlist> getOne(int id) async {
@@ -82,3 +107,20 @@ Setlist sampleSetlist({
           ),
       ],
     );
+
+final testAnnex = Annex(id: 1, name: 'Anexo principal');
+
+/// The active annex pinned to [annex] (or to none), switchable from a test
+/// with `set`.
+class FixedActiveAnnex extends ActiveAnnexNotifier {
+  FixedActiveAnnex([this.annex]);
+  final Annex? annex;
+
+  @override
+  Annex? build() => annex;
+
+  @override
+  Future<void> select(Annex annex) async => state = annex;
+
+  void set(Annex? annex) => state = annex;
+}
