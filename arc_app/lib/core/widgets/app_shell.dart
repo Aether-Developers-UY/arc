@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/annexes/annex_selector.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/setlist_detail_provider.dart';
@@ -35,6 +36,9 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _logout() => ref.read(authProvider.notifier).logout();
 
+  // Task 9 opens Mis anexos from here.
+  void _manageAnnexes() {}
+
   void _select(int index) {
     setState(() => _index = index);
     // Inicio stays alive in the IndexedStack; refetch its pinned setlists
@@ -50,12 +54,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         HomeScreen(
           onOpenSongs: () => _select(1),
           onOpenSetlists: () => _select(2),
-          // Task 9 wires this to Mis anexos.
-          onChooseAnnexes: () {},
+          onChooseAnnexes: _manageAnnexes,
         ),
         const SongListScreen(),
-        // Task 9 wires this to Mis anexos.
-        SetlistListScreen(onChooseAnnexes: () {}),
+        SetlistListScreen(onChooseAnnexes: _manageAnnexes),
       ],
     );
 
@@ -68,6 +70,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               onSelect: _select,
               onLogout: _logout,
               userName: ref.watch(authProvider).user?.name,
+              annexSelector: AnnexSelector(onManage: _manageAnnexes),
             ),
             const VerticalDivider(width: 1),
             Expanded(child: body),
@@ -80,6 +83,16 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: AppBar(
         titleSpacing: 16,
         title: const ArcaLogo(size: 32, showWordmark: true),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: AnnexSelector(onManage: _manageAnnexes),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Cerrar sesión',
@@ -111,12 +124,14 @@ class _Sidebar extends StatelessWidget {
     required this.onSelect,
     required this.onLogout,
     required this.userName,
+    required this.annexSelector,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onSelect;
   final VoidCallback onLogout;
   final String? userName;
+  final Widget annexSelector;
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +144,11 @@ class _Sidebar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 32),
+            padding: EdgeInsets.only(left: 8, bottom: 16),
             child: ArcaLogo(size: 40, showWordmark: true),
           ),
+          annexSelector,
+          const SizedBox(height: 16),
           for (var i = 0; i < _destinations.length; i++)
             _SidebarItem(
               destination: _destinations[i],

@@ -71,6 +71,14 @@ void main() {
     });
   }
 
+  for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {
+    testWidgets('the selector is visible ($label)', (tester) async {
+      await pumpShell(tester, size: size);
+
+      expect(find.text('Anexo: Anexo principal'), findsOneWidget);
+    });
+  }
+
   testWidgets('Biblioteca de canciones jumps to the Canciones tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900));
     expect(find.text(_songsSubtitle), findsNothing);
