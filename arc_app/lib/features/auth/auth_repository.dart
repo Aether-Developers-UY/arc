@@ -2,19 +2,36 @@ import 'package:dio/dio.dart';
 
 import '../../core/api_client.dart';
 import '../../core/token_storage.dart';
+import '../annexes/annex.dart';
 
 class AuthUser {
-  AuthUser({required this.id, required this.name, required this.email});
+  AuthUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.role = 'standard',
+    this.annexes = const [],
+  });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id'] as int,
         name: json['name'] as String,
         email: json['email'] as String,
+        role: json['role'] as String? ?? 'standard',
+        annexes: (json['annexes'] as List<dynamic>? ?? [])
+            .map((a) => Annex.fromJson(a as Map<String, dynamic>))
+            .toList(),
       );
 
   final int id;
   final String name;
   final String email;
+  final String role;
+
+  /// The annexes the user belongs to, by id.
+  final List<Annex> annexes;
+
+  bool get isAdmin => role == 'admin';
 }
 
 class AuthException implements Exception {

@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'token_storage.dart';
 
 class ApiClient {
-  ApiClient(this._tokenStorage) {
+  ApiClient(this._tokenStorage, {void Function()? onUnauthorized}) {
     _dio = Dio(BaseOptions(baseUrl: baseUrl));
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -14,6 +14,14 @@ class ApiClient {
           }
           options.headers['Accept'] = 'application/json';
           handler.next(options);
+        },
+        onError: (error, handler) {
+          // A 401 from /login is a wrong password; anywhere else it means
+          // the session is no longer valid.
+          if (error.response?.statusCode == 401 && error.requestOptions.path != '/login') {
+            onUnauthorized?.call();
+          }
+          handler.next(error);
         },
       ),
     );

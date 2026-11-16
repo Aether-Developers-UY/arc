@@ -7,7 +7,13 @@ import 'auth_repository.dart';
 
 final tokenStorageProvider = Provider((ref) => TokenStorage(const FlutterSecureStorage()));
 
-final apiClientProvider = Provider((ref) => ApiClient(ref.watch(tokenStorageProvider)));
+final apiClientProvider = Provider(
+  (ref) => ApiClient(
+    ref.watch(tokenStorageProvider),
+    // The server ended the session (password reset, user deleted).
+    onUnauthorized: () => ref.read(authProvider.notifier).sessionExpired(),
+  ),
+);
 
 final authRepositoryProvider = Provider(
   (ref) => AuthRepository(ref.watch(apiClientProvider), ref.watch(tokenStorageProvider)),
@@ -61,6 +67,20 @@ class AuthNotifier extends Notifier<AuthState> {
     } on AuthException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
+  }
+
+  /// Reloads the user from `/me`, e.g. after joining or leaving an annex.
+  Future<void> refreshUser() async {
+    final user = await ref.read(authRepositoryProvider).currentUser();
+    state = AuthState(user: user);
+  }
+
+  /// Back to the login screen without calling the server, whose session
+  /// is already gone.
+  Future<void> sessionExpired() async {
+    if (!state.isLoggedIn) return;
+    state = const AuthState();
+    await ref.read(tokenStorageProvider).clear();
   }
 
   Future<void> logout() async {
