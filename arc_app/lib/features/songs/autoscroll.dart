@@ -9,7 +9,12 @@ enum AutoScrollStatus { off, running, paused }
 /// Scrolls a song down at a steady pace, for reading it hands-free while
 /// playing. Speed is a multiplier of [baseSpeed], remembered per song.
 class AutoScroller extends ChangeNotifier {
-  AutoScroller({required TickerProvider vsync, required this.controller, required this.songId}) {
+  AutoScroller({
+    required TickerProvider vsync,
+    required this.controller,
+    required this.songId,
+    this.onActiveChanged,
+  }) {
     _ticker = vsync.createTicker(_tick);
     _restoreSpeed();
   }
@@ -20,6 +25,11 @@ class AutoScroller extends ChangeNotifier {
 
   final ScrollController controller;
   final int songId;
+
+  /// Called with true when autoscroll turns on and false when it turns
+  /// off (stopped, or the screen closed). Pausing keeps it on: the bar is
+  /// still up and the musician is still reading.
+  final void Function(bool active)? onActiveChanged;
   late final Ticker _ticker;
 
   AutoScrollStatus _status = AutoScrollStatus.off;
@@ -47,8 +57,7 @@ class AutoScroller extends ChangeNotifier {
 
   void pause() {
     _ticker.stop();
-    _status = AutoScrollStatus.paused;
-    notifyListeners();
+    _setStatus(AutoScrollStatus.paused);
   }
 
   /// Carries on; at the very end of the song it starts over from the top.
@@ -61,7 +70,14 @@ class AutoScroller extends ChangeNotifier {
 
   void stop() {
     _ticker.stop();
-    _status = AutoScrollStatus.off;
+    _setStatus(AutoScrollStatus.off);
+  }
+
+  void _setStatus(AutoScrollStatus next) {
+    final wasActive = _status != AutoScrollStatus.off;
+    _status = next;
+    final isActive = next != AutoScrollStatus.off;
+    if (wasActive != isActive) onActiveChanged?.call(isActive);
     notifyListeners();
   }
 
@@ -77,8 +93,7 @@ class AutoScroller extends ChangeNotifier {
   void _run() {
     _last = Duration.zero;
     if (!_ticker.isActive) _ticker.start();
-    _status = AutoScrollStatus.running;
-    notifyListeners();
+    _setStatus(AutoScrollStatus.running);
   }
 
   void _tick(Duration elapsed) {
@@ -97,6 +112,7 @@ class AutoScroller extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_status != AutoScrollStatus.off) onActiveChanged?.call(false);
     _ticker.dispose();
     super.dispose();
   }

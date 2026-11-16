@@ -1,3 +1,4 @@
+import 'package:arc_app/core/screen_awake.dart';
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/features/songs/song.dart';
 import 'package:arc_app/features/songs/song_detail_screen.dart';
@@ -5,6 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Records what the screen was asked to do instead of touching the device.
+class FakeScreenAwake implements ScreenAwake {
+  final calls = <bool>[];
+
+  @override
+  Future<void> keep(bool on) async => calls.add(on);
+}
+
+late FakeScreenAwake awake;
 
 /// Base speed: 30 logical pixels per second at 1×.
 const _base = 30.0;
@@ -35,8 +46,10 @@ Future<void> showSong(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues(stored);
+  awake = FakeScreenAwake();
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [screenAwakeProvider.overrideWithValue(awake)],
       child: MaterialApp(theme: ArcaTheme.light(), home: SongDetailScreen(song: song ?? _song())),
     ),
   );
@@ -183,5 +196,28 @@ void main() {
     await tap(tester, 'Desplazamiento automático');
     expect(find.text('1.25×'), findsOneWidget);
     await tap(tester, 'Detener');
+  });
+
+  testWidgets('the screen stays on while autoscroll is on, paused included', (tester) async {
+    await showSong(tester);
+    expect(awake.calls, isEmpty);
+
+    await tap(tester, 'Desplazamiento automático');
+    expect(awake.calls, [true]);
+
+    await tap(tester, 'Pausar');
+    expect(awake.calls, [true]);
+
+    await tap(tester, 'Detener');
+    expect(awake.calls, [true, false]);
+  });
+
+  testWidgets('leaving the song lets the screen sleep again', (tester) async {
+    await showSong(tester);
+    await tap(tester, 'Desplazamiento automático');
+
+    await tester.pumpWidget(const SizedBox());
+
+    expect(awake.calls, [true, false]);
   });
 }

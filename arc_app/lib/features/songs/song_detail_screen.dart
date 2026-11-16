@@ -5,6 +5,7 @@ import '../../core/chordpro/chordpro_parser.dart';
 import '../../core/chordpro/section_names.dart';
 import '../../core/chordpro/transposer.dart';
 import '../../core/layout.dart';
+import '../../core/screen_awake.dart';
 import '../../core/theme/arca_theme.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
@@ -32,8 +33,15 @@ class SongDetailScreen extends ConsumerStatefulWidget {
 class _SongDetailScreenState extends ConsumerState<SongDetailScreen>
     with SingleTickerProviderStateMixin {
   final _scrollController = ScrollController();
-  late final _autoScroller =
-      AutoScroller(vsync: this, controller: _scrollController, songId: widget.song.id);
+  // Read once here: dispose can't use ref, and it must still let the
+  // screen sleep when the song closes mid-scroll.
+  late final _screenAwake = ref.read(screenAwakeProvider);
+  late final _autoScroller = AutoScroller(
+    vsync: this,
+    controller: _scrollController,
+    songId: widget.song.id,
+    onActiveChanged: _screenAwake.keep,
+  );
 
   @override
   void dispose() {
