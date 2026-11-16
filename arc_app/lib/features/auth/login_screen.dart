@@ -84,7 +84,7 @@ class _BrandPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ArcaLogo(size: 80, showWordmark: true, wordmarkColor: title, markColor: const Color(0xFFF0EDE4)),
+          ArcaLogo(size: 72, showWordmark: true, wordmarkColor: title, markColor: const Color(0xFFF0EDE4)),
           const SizedBox(height: 32),
           Text(
             'Las canciones del ministerio, listas para el servicio.',
@@ -135,7 +135,7 @@ class _LoginForm extends ConsumerWidget {
             if (showLogo) ...[
               const Align(
                 alignment: Alignment.centerLeft,
-                child: ArcaLogo(size: 60, showWordmark: true),
+                child: ArcaLogo(size: 54, showWordmark: true),
               ),
               const SizedBox(height: 32),
             ],

@@ -96,7 +96,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: const ArcaLogo(size: 40, showWordmark: true),
+        title: const ArcaLogo(size: 36, showWordmark: true),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
           child: Padding(
@@ -169,7 +169,7 @@ class _Sidebar extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(left: 8, bottom: 16),
-            child: ArcaLogo(size: 52, showWordmark: true),
+            child: ArcaLogo(size: 46, showWordmark: true),
           ),
           annexSelector,
           const SizedBox(height: 16),

@@ -128,7 +128,7 @@ void main() {
     expect(find.text('Administración'), findsNothing);
   });
 
-  for (final (label, size, logo) in [('desktop', const Size(1200, 900), 52.0), ('phone', const Size(390, 844), 40.0)]) {
+  for (final (label, size, logo) in [('desktop', const Size(1200, 900), 46.0), ('phone', const Size(390, 844), 36.0)]) {
     testWidgets('the church logo is shown large ($label)', (tester) async {
       await pumpShell(tester, size: size);
 
