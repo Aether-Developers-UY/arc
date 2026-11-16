@@ -40,26 +40,27 @@ void main() {
   testWidgets('shows the active annex name', (tester) async {
     await pumpSelector(tester, [centro, norte]);
 
-    expect(find.text('Anexo: Centro'), findsOneWidget);
+    expect(find.text('Centro'), findsOneWidget);
+    expect(find.byIcon(Icons.church_outlined), findsOneWidget);
     expect(find.byIcon(Icons.arrow_drop_down), findsOneWidget);
   });
 
   testWidgets('choosing another annex makes it active', (tester) async {
     final container = await pumpSelector(tester, [centro, norte]);
 
-    await tester.tap(find.text('Anexo: Centro'));
+    await tester.tap(find.text('Centro'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Norte').last);
     await tester.pumpAndSettle();
 
     expect(container.read(activeAnnexProvider), norte);
-    expect(find.text('Anexo: Norte'), findsOneWidget);
+    expect(find.text('Norte'), findsOneWidget);
   });
 
   testWidgets('with one annex there is no dropdown arrow', (tester) async {
     await pumpSelector(tester, [centro]);
 
-    expect(find.text('Anexo: Centro'), findsOneWidget);
+    expect(find.text('Centro'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
   });
 
@@ -73,7 +74,7 @@ void main() {
     var managed = 0;
     await pumpSelector(tester, [centro], onManage: () => managed++);
 
-    await tester.tap(find.text('Anexo: Centro'));
+    await tester.tap(find.text('Centro'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Gestionar mis anexos'));
     await tester.pumpAndSettle();

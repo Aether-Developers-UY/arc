@@ -8,7 +8,7 @@ import 'annex.dart';
 
 const _manage = 'manage';
 
-/// "Anexo: Centro ▾" — always shows where the user is standing, and lets
+/// "⛪ Centro ▾" — always shows where the user is standing, and lets
 /// them switch annex or go manage their annexes. With a single annex the
 /// arrow goes away but the menu still opens, to reach "Gestionar".
 class AnnexSelector extends ConsumerWidget {
@@ -54,11 +54,11 @@ class AnnexSelector extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.place_outlined, size: 18, color: scheme.primary),
+            Icon(Icons.church_outlined, size: 18, color: scheme.primary),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                active == null ? 'Sin anexo' : 'Anexo: ${active.name}',
+                active == null ? 'Sin anexo' : active.name,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: active == null ? context.arca.textSecondary : scheme.onSurface,

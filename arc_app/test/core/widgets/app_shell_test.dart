@@ -92,7 +92,7 @@ void main() {
     testWidgets('the selector is visible ($label)', (tester) async {
       await pumpShell(tester, size: size);
 
-      expect(find.text('Anexo: Anexo principal'), findsOneWidget);
+      expect(find.text('Anexo principal'), findsOneWidget);
     });
   }
 
