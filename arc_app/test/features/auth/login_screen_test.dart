@@ -11,7 +11,7 @@ class _SignedOut extends AuthNotifier {
   AuthState build() => const AuthState();
 }
 
-const _navy = Color(0xFF0B1F38);
+const _verdeNoche = Color(0xFF353C2D);
 const _charcoal = Color(0xFF18191C);
 
 Finder panelColored(Color color) =>
@@ -36,17 +36,17 @@ void main() {
     ArcaTheme.useGoogleFonts = false;
   });
 
-  testWidgets('in light mode the brand panel is navy', (tester) async {
+  testWidgets('in light mode the brand panel is verde noche', (tester) async {
     await pumpLogin(tester, theme: ArcaTheme.light());
 
-    expect(panelColored(_navy), findsOneWidget);
+    expect(panelColored(_verdeNoche), findsOneWidget);
   });
 
-  testWidgets('in dark mode the brand panel is charcoal, not navy', (tester) async {
+  testWidgets('in dark mode the brand panel is charcoal', (tester) async {
     await pumpLogin(tester, theme: ArcaTheme.dark());
 
     expect(panelColored(_charcoal), findsOneWidget);
-    expect(panelColored(_navy), findsNothing);
+    expect(panelColored(_verdeNoche), findsNothing);
   });
 
   for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {

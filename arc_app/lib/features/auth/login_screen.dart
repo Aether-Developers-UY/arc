@@ -70,20 +70,21 @@ class _BrandPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Navy in light mode; in dark mode a charcoal a step deeper than the
-    // background, so the panel still reads as its own area.
+    // Verde noche (the church site's footer) in light mode; in dark mode a
+    // charcoal a step deeper than the background, so the panel still reads
+    // as its own area. The logo and text go cream on both.
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title = isDark ? Theme.of(context).colorScheme.onSurface : Colors.white;
-    final subtitle = isDark ? context.arca.textSecondary : const Color(0xFF9DB4D0);
+    final title = isDark ? Theme.of(context).colorScheme.onSurface : const Color(0xFFF0EDE4);
+    final subtitle = isDark ? context.arca.textSecondary : const Color(0xFFC9C0AE);
 
     return Container(
-      color: isDark ? const Color(0xFF18191C) : const Color(0xFF0B1F38),
+      color: isDark ? const Color(0xFF18191C) : const Color(0xFF353C2D),
       padding: const EdgeInsets.all(56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ArcaLogo(size: 64, showWordmark: true, wordmarkColor: title),
+          ArcaLogo(size: 64, showWordmark: true, wordmarkColor: title, markColor: const Color(0xFFF0EDE4)),
           const SizedBox(height: 32),
           Text(
             'Las canciones del ministerio, listas para el servicio.',

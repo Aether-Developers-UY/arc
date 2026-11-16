@@ -9,23 +9,23 @@ void main() {
     ArcaTheme.useGoogleFonts = false;
   });
 
-  test('dark theme uses a charcoal background and gold chords', () {
+  test('dark theme uses a charcoal background and light green chords', () {
     final theme = ArcaTheme.dark();
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, const Color(0xFF1E1F22));
-    expect(theme.extension<ArcaTokens>()!.chord, const Color(0xFFF2B441));
+    expect(theme.extension<ArcaTokens>()!.chord, const Color(0xFFA9B19A));
   });
 
-  test('light theme uses the day background and a darker gold for chords', () {
+  test('light theme uses the church palette: pérola background, green chords', () {
     final theme = ArcaTheme.light();
     expect(theme.brightness, Brightness.light);
-    expect(theme.scaffoldBackgroundColor, const Color(0xFFF5F7FA));
-    expect(theme.extension<ArcaTokens>()!.chord, const Color(0xFFA8650A));
+    expect(theme.scaffoldBackgroundColor, const Color(0xFFF0EDE4));
+    expect(theme.extension<ArcaTokens>()!.chord, const Color(0xFF5D6650));
   });
 
-  test('primary colour differs between themes', () {
-    expect(ArcaTheme.dark().colorScheme.primary, const Color(0xFF6AA8EC));
-    expect(ArcaTheme.light().colorScheme.primary, const Color(0xFF1F5FA8));
+  test('terracota is the primary colour, lifted in dark mode', () {
+    expect(ArcaTheme.dark().colorScheme.primary, const Color(0xFFD98A5E));
+    expect(ArcaTheme.light().colorScheme.primary, const Color(0xFF974315));
   });
 
   test('dark theme surfaces are neutral greys, never pure black', () {
