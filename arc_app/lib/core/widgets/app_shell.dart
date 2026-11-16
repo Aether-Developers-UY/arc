@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/annexes/annex_selector.dart';
+import '../../features/annexes/my_annexes_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/setlist_detail_provider.dart';
@@ -36,8 +37,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _logout() => ref.read(authProvider.notifier).logout();
 
-  // Task 9 opens Mis anexos from here.
-  void _manageAnnexes() {}
+  void _manageAnnexes() => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const MyAnnexesScreen()));
 
   void _select(int index) {
     setState(() => _index = index);
@@ -71,6 +72,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               onLogout: _logout,
               userName: ref.watch(authProvider).user?.name,
               annexSelector: AnnexSelector(onManage: _manageAnnexes),
+              onManageAnnexes: _manageAnnexes,
             ),
             const VerticalDivider(width: 1),
             Expanded(child: body),
@@ -94,6 +96,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Mis anexos',
+            icon: const Icon(Icons.groups_outlined),
+            onPressed: _manageAnnexes,
+          ),
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),
@@ -125,6 +132,7 @@ class _Sidebar extends StatelessWidget {
     required this.onLogout,
     required this.userName,
     required this.annexSelector,
+    required this.onManageAnnexes,
   });
 
   final int selectedIndex;
@@ -132,6 +140,7 @@ class _Sidebar extends StatelessWidget {
   final VoidCallback onLogout;
   final String? userName;
   final Widget annexSelector;
+  final VoidCallback onManageAnnexes;
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +179,14 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 4),
+          Tooltip(
+            message: 'Mis anexos',
+            child: _SidebarItem(
+              destination: const _Destination('Mis anexos', Icons.groups_outlined, Icons.groups),
+              selected: false,
+              onTap: onManageAnnexes,
+            ),
+          ),
           _SidebarItem(
             destination: const _Destination(
               'Cerrar sesión',

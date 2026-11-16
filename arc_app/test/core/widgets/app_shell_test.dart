@@ -1,5 +1,7 @@
 import 'package:arc_app/core/theme/arca_theme.dart';
 import 'package:arc_app/core/widgets/app_shell.dart';
+import 'package:arc_app/features/annexes/annex_repository.dart';
+import 'package:arc_app/features/annexes/my_annexes_screen.dart';
 import 'package:arc_app/features/auth/auth_provider.dart';
 import 'package:arc_app/features/auth/auth_repository.dart';
 import 'package:arc_app/features/setlists/setlist_list_provider.dart';
@@ -10,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/annexes/my_annexes_screen_test.dart' show FakeAnnexRepository;
 import '../../features/home/home_test_helpers.dart';
 
 class _LoggedInAuth extends AuthNotifier {
@@ -46,6 +49,7 @@ Future<FakeSetlistRepository> pumpShell(
         authProvider.overrideWith(_LoggedInAuth.new),
         songListProvider.overrideWith(_NoSongs.new),
         setlistRepositoryProvider.overrideWithValue(repository),
+        annexRepositoryProvider.overrideWithValue(FakeAnnexRepository([testAnnex], {testAnnex.id})),
       ],
       child: MaterialApp(theme: ArcaTheme.light(), home: const AppShell()),
     ),
@@ -76,6 +80,17 @@ void main() {
       await pumpShell(tester, size: size);
 
       expect(find.text('Anexo: Anexo principal'), findsOneWidget);
+    });
+  }
+
+  for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {
+    testWidgets('Mis anexos opens from the shell ($label)', (tester) async {
+      await pumpShell(tester, size: size);
+
+      await tester.tap(find.byTooltip('Mis anexos'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MyAnnexesScreen), findsOneWidget);
     });
   }
 
