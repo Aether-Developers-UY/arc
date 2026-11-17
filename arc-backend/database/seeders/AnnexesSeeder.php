@@ -14,7 +14,6 @@ use Illuminate\Database\Seeder;
 class AnnexesSeeder extends Seeder
 {
     public const NAMES = [
-        'Anexo principal',
         'Burgues',
         'Civils y Alianza',
         'Casarino',

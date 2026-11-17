@@ -2,15 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\Annex;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
 /**
  * The first people of the first version: one admin and two standard users,
- * all in «Anexo principal». Safe to run again: someone who already exists
- * is left as they are (name or password changed from Administración stay).
+ * with no annex yet: each picks theirs from Mis anexos. Safe to run again:
+ * someone who already exists is left as they are (name or password changed
+ * from Administración stay).
  *
  *   php artisan db:seed --class=FirstUsersSeeder
  */
@@ -24,8 +24,6 @@ class FirstUsersSeeder extends Seeder
             throw new RuntimeException('Set ARCA_ADMIN_PASSWORD and ARCA_STANDARD_PASSWORD in .env first.');
         }
 
-        $annex = Annex::firstOrCreate(['name' => 'Anexo principal']);
-
         $people = [
             ['Administrador', 'admin@arca.local', 'admin', $adminPassword],
             ['Usuario estándar 1', 'estandar1@arca.local', 'standard', $standardPassword],
@@ -33,11 +31,10 @@ class FirstUsersSeeder extends Seeder
         ];
 
         foreach ($people as [$name, $email, $role, $password]) {
-            $user = User::firstOrCreate(
+            User::firstOrCreate(
                 ['email' => $email],
                 ['name' => $name, 'role' => $role, 'password' => $password],
             );
-            $user->annexes()->syncWithoutDetaching([$annex->id]);
         }
     }
 }

@@ -12,7 +12,7 @@ class AnnexesSeederTest extends TestCase
     use RefreshDatabase;
 
     private const ANNEXES = [
-        'Anexo principal', 'Burgues', 'Civils y Alianza', 'Casarino', 'Rivera', 'Ansina', 'Barracas', 'Mendoza',
+        'Burgues', 'Civils y Alianza', 'Casarino', 'Rivera', 'Ansina', 'Barracas', 'Mendoza',
     ];
 
     public function test_it_creates_the_churchs_annexes(): void

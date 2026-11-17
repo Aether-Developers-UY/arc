@@ -21,7 +21,7 @@ class FirstUsersSeederTest extends TestCase
         ]);
     }
 
-    public function test_it_creates_one_admin_and_two_standard_users_in_the_main_annex(): void
+    public function test_it_creates_one_admin_and_two_standard_users_with_no_annex_yet(): void
     {
         $this->seed(FirstUsersSeeder::class);
 
@@ -33,7 +33,8 @@ class FirstUsersSeederTest extends TestCase
             $user = User::where('email', $email)->firstOrFail();
             $this->assertSame('standard', $user->role);
             $this->assertTrue(Hash::check('clave-estandar-1', $user->password));
-            $this->assertSame(['Anexo principal'], $user->annexes()->pluck('name')->all());
+            // Each one picks their annexes from Mis anexos.
+            $this->assertSame(0, $user->annexes()->count());
         }
     }
 
