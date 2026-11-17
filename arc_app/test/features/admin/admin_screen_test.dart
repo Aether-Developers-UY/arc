@@ -13,8 +13,8 @@ import '../annexes/my_annexes_screen_test.dart' show FakeAnnexRepository, RepoAu
 
 class FakeAdminRepository implements AdminRepository {
   final List<AdminUser> people = [
-    AdminUser(id: 1, name: 'Ana', email: 'ana@arc.local', role: 'admin'),
-    AdminUser(id: 2, name: 'Beto', email: 'beto@arc.local', role: 'standard'),
+    AdminUser(id: 1, name: 'Ana', username: 'ana', role: 'admin'),
+    AdminUser(id: 2, name: 'Beto', username: 'beto', role: 'standard'),
   ];
   final List<String> calls = [];
   AdminException? nextError;
@@ -32,18 +32,18 @@ class FakeAdminRepository implements AdminRepository {
   @override
   Future<void> createUser({
     required String name,
-    required String email,
+    required String username,
     required String password,
     required String role,
   }) async {
-    calls.add('create $name $email $password $role');
+    calls.add('create $name $username $password $role');
     _maybeFail();
-    people.add(AdminUser(id: people.length + 1, name: name, email: email, role: role));
+    people.add(AdminUser(id: people.length + 1, name: name, username: username, role: role));
   }
 
   @override
-  Future<void> updateUser(int id, {String? name, String? email, String? role, String? password}) async {
-    calls.add('update $id ${[name, email, role, password].whereType<String>().join(' ')}');
+  Future<void> updateUser(int id, {String? name, String? username, String? role, String? password}) async {
+    calls.add('update $id ${[name, username, role, password].whereType<String>().join(' ')}');
     _maybeFail();
   }
 
@@ -118,7 +118,7 @@ void main() {
     await pumpAdmin(tester);
 
     expect(find.text('Ana'), findsOneWidget);
-    expect(find.text('beto@arc.local'), findsOneWidget);
+    expect(find.text('beto'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
   });
 
@@ -128,12 +128,12 @@ void main() {
     await tester.tap(find.text('Nuevo usuario'));
     await tester.pumpAndSettle();
     await fill(tester, 'Nombre', 'Caro');
-    await fill(tester, 'Correo', 'caro@arc.local');
+    await fill(tester, 'Usuario', 'caro');
     await fill(tester, 'Contraseña', 'alabanza1');
     await tester.tap(find.text('Crear'));
     await tester.pumpAndSettle();
 
-    expect(admin.calls, ['create Caro caro@arc.local alabanza1 standard']);
+    expect(admin.calls, ['create Caro caro alabanza1 standard']);
     expect(find.text('Caro'), findsOneWidget);
   });
 

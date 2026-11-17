@@ -25,11 +25,11 @@ class UserAdminTest extends TestCase
     public function test_admin_lists_users_by_name(): void
     {
         $admin = User::factory()->admin()->create(['name' => 'Zoe']);
-        User::factory()->create(['name' => 'Ana', 'email' => 'ana@example.com']);
+        User::factory()->create(['name' => 'Ana', 'username' => 'ana']);
 
         $this->actingAs($admin, 'sanctum')->getJson('/api/users')
             ->assertOk()
-            ->assertJsonPath('data.0', ['id' => 2, 'name' => 'Ana', 'email' => 'ana@example.com', 'role' => 'standard'])
+            ->assertJsonPath('data.0', ['id' => 2, 'name' => 'Ana', 'username' => 'ana', 'role' => 'standard'])
             ->assertJsonPath('data.1.name', 'Zoe');
     }
 
@@ -39,25 +39,67 @@ class UserAdminTest extends TestCase
 
         $this->actingAs($admin, 'sanctum')->postJson('/api/users', [
             'name' => 'Lucía',
-            'email' => 'lucia@example.com',
+            'username' => 'lucia',
             'password' => 'alabanza1',
             'role' => 'standard',
-        ])->assertCreated()->assertJsonPath('data.email', 'lucia@example.com');
+        ])->assertCreated()->assertJsonPath('data.username', 'lucia');
 
         $this->app['auth']->shouldUse('web');
-        $this->postJson('/api/login', ['email' => 'lucia@example.com', 'password' => 'alabanza1'])->assertOk();
+        $this->postJson('/api/login', ['username' => 'lucia', 'password' => 'alabanza1'])->assertOk();
     }
 
-    public function test_emails_are_unique(): void
+    public function test_usernames_are_unique_whatever_the_capitals(): void
     {
-        $admin = User::factory()->admin()->create(['email' => 'admin@example.com']);
+        $admin = User::factory()->admin()->create(['username' => 'admin']);
 
         $this->actingAs($admin, 'sanctum')->postJson('/api/users', [
             'name' => 'Otro',
-            'email' => 'admin@example.com',
+            'username' => ' Admin ',
             'password' => 'alabanza1',
             'role' => 'standard',
-        ])->assertUnprocessable()->assertJsonValidationErrors('email');
+        ])->assertUnprocessable()->assertJsonValidationErrors(['username' => 'Ese nombre de usuario ya existe.']);
+    }
+
+    public function test_no_email_is_needed_nor_kept(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin, 'sanctum')->postJson('/api/users', [
+            'name' => 'Lucía',
+            'username' => 'lucia',
+            'password' => 'alabanza1',
+            'role' => 'standard',
+        ])->assertCreated()->assertJsonMissingPath('data.email');
+
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('users', 'email'));
+    }
+
+    public function test_a_username_is_one_word_of_letters_numbers_dots_or_dashes(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        foreach (['ana maria', 'ña', 'a', 'ana@arca'] as $bad) {
+            $this->actingAs($admin, 'sanctum')->postJson('/api/users', [
+                'name' => 'X', 'username' => $bad, 'password' => 'alabanza1', 'role' => 'standard',
+            ])->assertUnprocessable()->assertJsonValidationErrors('username');
+        }
+
+        $this->actingAs($admin, 'sanctum')->postJson('/api/users', [
+            'name' => 'X', 'username' => 'ana.maria_2-b', 'password' => 'alabanza1', 'role' => 'standard',
+        ])->assertCreated();
+    }
+
+    public function test_a_username_can_be_changed_and_is_used_to_log_in(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->create(['username' => 'ana', 'password' => 'alabanza1']);
+
+        $this->actingAs($admin, 'sanctum')->putJson("/api/users/{$user->id}", ['username' => 'Ana.Perez'])
+            ->assertOk()
+            ->assertJsonPath('data.username', 'ana.perez');
+
+        $this->app['auth']->shouldUse('web');
+        $this->postJson('/api/login', ['username' => 'ana.perez', 'password' => 'alabanza1'])->assertOk();
     }
 
     public function test_admin_changes_name_and_role_without_revoking_tokens(): void
@@ -80,7 +122,7 @@ class UserAdminTest extends TestCase
     public function test_resetting_a_password_revokes_that_users_tokens(): void
     {
         $admin = User::factory()->admin()->create();
-        $user = User::factory()->create(['email' => 'equipo@example.com']);
+        $user = User::factory()->create(['username' => 'equipo']);
         $token = $user->createToken('app')->plainTextToken;
 
         $this->actingAs($admin, 'sanctum')
@@ -90,7 +132,7 @@ class UserAdminTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
         $this->app['auth']->shouldUse('web');
-        $this->postJson('/api/login', ['email' => 'equipo@example.com', 'password' => 'nuevaClave9'])->assertOk();
+        $this->postJson('/api/login', ['username' => 'equipo', 'password' => 'nuevaClave9'])->assertOk();
     }
 
     public function test_cannot_demote_the_last_admin(): void

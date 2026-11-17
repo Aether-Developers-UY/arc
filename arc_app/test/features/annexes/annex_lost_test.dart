@@ -24,12 +24,12 @@ class LeftCentroElsewhere extends AuthNotifier {
 
   @override
   AuthState build() =>
-      AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local', annexes: [centro, norte]));
+      AuthState(user: AuthUser(id: 1, name: 'Ana', username: 'ana', annexes: [centro, norte]));
 
   @override
   Future<void> refreshUser() async {
     refreshes++;
-    state = AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local', annexes: [norte]));
+    state = AuthState(user: AuthUser(id: 1, name: 'Ana', username: 'ana', annexes: [norte]));
   }
 }
 

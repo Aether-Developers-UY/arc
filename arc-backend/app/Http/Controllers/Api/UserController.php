@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    private const FIELDS = ['id', 'name', 'email', 'role'];
+    private const FIELDS = ['id', 'name', 'username', 'role'];
 
     public function index()
     {

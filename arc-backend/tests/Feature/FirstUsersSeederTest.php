@@ -25,12 +25,12 @@ class FirstUsersSeederTest extends TestCase
     {
         $this->seed(FirstUsersSeeder::class);
 
-        $admin = User::where('email', 'admin@arca.local')->firstOrFail();
+        $admin = User::where('username', 'admin')->firstOrFail();
         $this->assertTrue($admin->isAdmin());
         $this->assertTrue(Hash::check('clave-admin-1', $admin->password));
 
-        foreach (['estandar1@arca.local', 'estandar2@arca.local'] as $email) {
-            $user = User::where('email', $email)->firstOrFail();
+        foreach (['estandar1', 'estandar2'] as $username) {
+            $user = User::where('username', $username)->firstOrFail();
             $this->assertSame('standard', $user->role);
             $this->assertTrue(Hash::check('clave-estandar-1', $user->password));
             // Each one picks their annexes from Mis anexos.
@@ -41,12 +41,12 @@ class FirstUsersSeederTest extends TestCase
     public function test_running_it_again_does_not_duplicate_or_undo_changes(): void
     {
         $this->seed(FirstUsersSeeder::class);
-        User::where('email', 'estandar1@arca.local')->update(['name' => 'Ana']);
+        User::where('username', 'estandar1')->update(['name' => 'Ana']);
 
         $this->seed(FirstUsersSeeder::class);
 
         $this->assertSame(3, User::count());
-        $this->assertSame('Ana', User::where('email', 'estandar1@arca.local')->value('name'));
+        $this->assertSame('Ana', User::where('username', 'estandar1')->value('name'));
     }
 
     public function test_it_refuses_to_run_without_passwords(): void
@@ -62,8 +62,8 @@ class FirstUsersSeederTest extends TestCase
         $this->seed();
 
         $this->assertEqualsCanonicalizing(
-            ['admin@arca.local', 'estandar1@arca.local', 'estandar2@arca.local'],
-            User::pluck('email')->all(),
+            ['admin', 'estandar1', 'estandar2'],
+            User::pluck('username')->all(),
         );
     }
 
@@ -71,7 +71,7 @@ class FirstUsersSeederTest extends TestCase
     {
         $this->seed(FirstUsersSeeder::class);
 
-        $this->postJson('/api/login', ['email' => 'admin@arca.local', 'password' => 'clave-admin-1'])
+        $this->postJson('/api/login', ['username' => 'admin', 'password' => 'clave-admin-1'])
             ->assertOk()
             ->assertJsonPath('user.role', 'admin');
     }

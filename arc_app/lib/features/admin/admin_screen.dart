@@ -157,7 +157,7 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
     if (result == null) return;
     await _run(() => _repository.createUser(
           name: result.name,
-          email: result.email,
+          username: result.username,
           password: result.password!,
           role: result.role,
         ));
@@ -169,7 +169,7 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
     await _run(() => _repository.updateUser(
           user.id,
           name: result.name,
-          email: result.email,
+          username: result.username,
           role: result.role,
         ));
     // Editing yourself (name, role) changes what the app shows.
@@ -213,7 +213,7 @@ class _UsersTabState extends ConsumerState<_UsersTab> {
         child: ListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(user.name),
-          subtitle: Text(user.email),
+          subtitle: Text(user.username),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -7,18 +7,18 @@ import '../auth/auth_provider.dart';
 final adminRepositoryProvider = Provider((ref) => AdminRepository(ref.watch(apiClientProvider)));
 
 class AdminUser {
-  AdminUser({required this.id, required this.name, required this.email, required this.role});
+  AdminUser({required this.id, required this.name, required this.username, required this.role});
 
   factory AdminUser.fromJson(Map<String, dynamic> json) => AdminUser(
         id: json['id'] as int,
         name: json['name'] as String,
-        email: json['email'] as String,
+        username: json['username'] as String,
         role: json['role'] as String,
       );
 
   final int id;
   final String name;
-  final String email;
+  final String username;
   final String role;
 
   bool get isAdmin => role == 'admin';
@@ -50,23 +50,23 @@ class AdminRepository {
 
   Future<void> createUser({
     required String name,
-    required String email,
+    required String username,
     required String password,
     required String role,
   }) =>
       _guard(() => _dio.post('/users', data: {
             'name': name,
-            'email': email,
+            'username': username,
             'password': password,
             'role': role,
           }));
 
   /// Only the given fields change. Sending [password] ends that user's
   /// sessions.
-  Future<void> updateUser(int id, {String? name, String? email, String? role, String? password}) =>
+  Future<void> updateUser(int id, {String? name, String? username, String? role, String? password}) =>
       _guard(() => _dio.put('/users/$id', data: {
             'name': ?name,
-            'email': ?email,
+            'username': ?username,
             'role': ?role,
             'password': ?password,
           }));

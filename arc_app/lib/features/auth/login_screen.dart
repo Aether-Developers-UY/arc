@@ -15,19 +15,19 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _submit() {
     ref.read(authProvider.notifier).login(
-          _emailController.text.trim(),
+          _usernameController.text.trim(),
           _passwordController.text,
         );
   }
@@ -36,7 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final wide = isWide(context);
     final form = _LoginForm(
-      emailController: _emailController,
+      usernameController: _usernameController,
       passwordController: _passwordController,
       onSubmit: _submit,
       showLogo: !wide,
@@ -108,13 +108,13 @@ class _BrandPanel extends StatelessWidget {
 
 class _LoginForm extends ConsumerWidget {
   const _LoginForm({
-    required this.emailController,
+    required this.usernameController,
     required this.passwordController,
     required this.onSubmit,
     required this.showLogo,
   });
 
-  final TextEditingController emailController;
+  final TextEditingController usernameController;
   final TextEditingController passwordController;
   final VoidCallback onSubmit;
   final bool showLogo;
@@ -142,15 +142,17 @@ class _LoginForm extends ConsumerWidget {
             Text('Ingresá a Arca', style: text.headlineSmall),
             const SizedBox(height: 4),
             Text(
-              'Usá tu correo y contraseña.',
+              'Usá tu usuario y contraseña.',
               style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
             ),
             const SizedBox(height: 24),
             TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Correo'),
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
+              controller: usernameController,
+              decoration: const InputDecoration(labelText: 'Usuario'),
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.none,
+              autofillHints: const [AutofillHints.username],
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 14),

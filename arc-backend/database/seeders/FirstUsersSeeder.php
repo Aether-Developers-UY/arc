@@ -25,14 +25,14 @@ class FirstUsersSeeder extends Seeder
         }
 
         $people = [
-            ['Administrador', 'admin@arca.local', 'admin', $adminPassword],
-            ['Usuario estándar 1', 'estandar1@arca.local', 'standard', $standardPassword],
-            ['Usuario estándar 2', 'estandar2@arca.local', 'standard', $standardPassword],
+            ['Administrador', 'admin', 'admin', $adminPassword],
+            ['Usuario estándar 1', 'estandar1', 'standard', $standardPassword],
+            ['Usuario estándar 2', 'estandar2', 'standard', $standardPassword],
         ];
 
-        foreach ($people as [$name, $email, $role, $password]) {
+        foreach ($people as [$name, $username, $role, $password]) {
             User::firstOrCreate(
-                ['email' => $email],
+                ['username' => $username],
                 ['name' => $name, 'role' => $role, 'password' => $password],
             );
         }

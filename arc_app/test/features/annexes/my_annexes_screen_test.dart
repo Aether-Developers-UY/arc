@@ -50,7 +50,7 @@ class RepoAuth extends AuthNotifier {
   AuthUser _user() => AuthUser(
         id: 1,
         name: 'Ana',
-        email: 'ana@arc.local',
+        username: 'ana',
         annexes: [for (final a in repository.all) if (repository.members.contains(a.id)) a],
       );
 

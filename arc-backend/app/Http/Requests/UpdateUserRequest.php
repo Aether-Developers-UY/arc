@@ -7,6 +7,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
+    use UsernameRules;
+
     public function authorize(): bool
     {
         return true;
@@ -16,20 +18,9 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'email' => [
-                'sometimes',
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($this->route('user')),
-            ],
+            'username' => ['sometimes', ...$this->usernameRules($this->route('user'))],
             'role' => ['sometimes', 'required', Rule::in(['standard', 'admin'])],
             'password' => ['sometimes', 'required', 'string', 'min:8'],
         ];
-    }
-
-    public function messages(): array
-    {
-        return ['email.unique' => 'Ya hay un usuario con ese correo.'];
     }
 }

@@ -13,18 +13,19 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
+        $credentials['username'] = User::normalizeUsername($credentials['username']);
 
         if (! Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
-                'email' => ['Las credenciales no son correctas.'],
+                'username' => ['Usuario o contraseña incorrectos.'],
             ]);
         }
 
         /** @var User $user */
-        $user = User::where('email', $credentials['email'])->firstOrFail();
+        $user = User::where('username', $credentials['username'])->firstOrFail();
         $token = $user->createToken('arc-app')->plainTextToken;
 
         return response()->json([

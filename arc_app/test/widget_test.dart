@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 
 class _SignedIn extends AuthNotifier {
   @override
-  AuthState build() => AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local'));
+  AuthState build() => AuthState(user: AuthUser(id: 1, name: 'Ana', username: 'ana'));
 }
 
 void main() {

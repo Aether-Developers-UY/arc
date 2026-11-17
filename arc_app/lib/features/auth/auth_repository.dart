@@ -8,7 +8,7 @@ class AuthUser {
   AuthUser({
     required this.id,
     required this.name,
-    required this.email,
+    required this.username,
     this.role = 'standard',
     this.annexes = const [],
   });
@@ -16,7 +16,7 @@ class AuthUser {
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id'] as int,
         name: json['name'] as String,
-        email: json['email'] as String,
+        username: json['username'] as String,
         role: json['role'] as String? ?? 'standard',
         annexes: (json['annexes'] as List<dynamic>? ?? [])
             .map((a) => Annex.fromJson(a as Map<String, dynamic>))
@@ -25,7 +25,7 @@ class AuthUser {
 
   final int id;
   final String name;
-  final String email;
+  final String username;
   final String role;
 
   /// The annexes the user belongs to, by id.
@@ -45,10 +45,10 @@ class AuthRepository {
   final ApiClient _apiClient;
   final TokenStorage _tokenStorage;
 
-  Future<AuthUser> login({required String email, required String password}) async {
+  Future<AuthUser> login({required String username, required String password}) async {
     try {
       final response = await _apiClient.dio.post('/login', data: {
-        'email': email,
+        'username': username,
         'password': password,
       });
       final token = response.data['token'] as String;
@@ -56,7 +56,7 @@ class AuthRepository {
       return AuthUser.fromJson(response.data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {
       if (e.response?.statusCode == 422) {
-        throw AuthException('El email o la contraseña no son correctos.');
+        throw AuthException('Usuario o contraseña incorrectos.');
       }
       throw AuthException('No se pudo conectar con el servidor.');
     } on TypeError {

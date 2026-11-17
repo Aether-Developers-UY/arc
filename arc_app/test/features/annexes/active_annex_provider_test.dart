@@ -16,7 +16,7 @@ class FakeAuth extends AuthNotifier {
 
   @override
   AuthState build() =>
-      AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local', annexes: annexes));
+      AuthState(user: AuthUser(id: 1, name: 'Ana', username: 'ana', annexes: annexes));
 }
 
 Future<ProviderContainer> containerWith(List<Annex> annexes, {int? stored}) async {
@@ -68,7 +68,7 @@ void main() {
     final user = AuthUser.fromJson({
       'id': 1,
       'name': 'Ana',
-      'email': 'ana@arc.local',
+      'username': 'ana',
       'role': 'admin',
       'annexes': [
         {'id': 3, 'name': 'Centro'},
@@ -81,8 +81,8 @@ void main() {
   });
 
   test('isAdmin is false for standard users and missing roles', () {
-    expect(AuthUser.fromJson({'id': 1, 'name': 'A', 'email': 'a@b.c', 'role': 'standard'}).isAdmin,
+    expect(AuthUser.fromJson({'id': 1, 'name': 'A', 'username': 'a', 'role': 'standard'}).isAdmin,
         isFalse);
-    expect(AuthUser(id: 1, name: 'A', email: 'a@b.c').isAdmin, isFalse);
+    expect(AuthUser(id: 1, name: 'A', username: 'a').isAdmin, isFalse);
   });
 }

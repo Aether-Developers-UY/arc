@@ -132,7 +132,7 @@ class FixedActiveAnnex extends ActiveAnnexNotifier {
 class StaticAuth extends AuthNotifier {
   @override
   AuthState build() =>
-      AuthState(user: AuthUser(id: 1, name: 'Ana', email: 'ana@arc.local', annexes: [testAnnex]));
+      AuthState(user: AuthUser(id: 1, name: 'Ana', username: 'ana', annexes: [testAnnex]));
 
   @override
   Future<void> refreshUser() async {}

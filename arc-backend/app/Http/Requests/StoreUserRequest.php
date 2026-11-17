@@ -7,6 +7,8 @@ use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
+    use UsernameRules;
+
     public function authorize(): bool
     {
         return true;
@@ -16,14 +18,9 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'username' => $this->usernameRules(),
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', Rule::in(['standard', 'admin'])],
         ];
-    }
-
-    public function messages(): array
-    {
-        return ['email.unique' => 'Ya hay un usuario con ese correo.'];
     }
 }

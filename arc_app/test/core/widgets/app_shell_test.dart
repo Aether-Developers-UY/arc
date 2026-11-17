@@ -29,7 +29,7 @@ class _LoggedInAuth extends AuthNotifier {
         user: AuthUser(
           id: 1,
           name: 'Test',
-          email: 'test@arc.local',
+          username: 'test',
           role: role,
           annexes: [testAnnex],
         ),

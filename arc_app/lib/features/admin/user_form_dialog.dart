@@ -4,15 +4,15 @@ import 'admin_repository.dart';
 
 /// What the admin filled in. [password] is only set when creating.
 class UserFormResult {
-  UserFormResult({required this.name, required this.email, required this.role, this.password});
+  UserFormResult({required this.name, required this.username, required this.role, this.password});
 
   final String name;
-  final String email;
+  final String username;
   final String role;
   final String? password;
 }
 
-/// Create a user ([user] null) or edit one's name, email and role.
+/// Create a user ([user] null) or edit one's name, username and role.
 Future<UserFormResult?> showUserFormDialog(BuildContext context, {AdminUser? user}) =>
     showDialog<UserFormResult>(context: context, builder: (_) => _UserFormDialog(user: user));
 
@@ -27,7 +27,7 @@ class _UserFormDialog extends StatefulWidget {
 
 class _UserFormDialogState extends State<_UserFormDialog> {
   late final _name = TextEditingController(text: widget.user?.name);
-  late final _email = TextEditingController(text: widget.user?.email);
+  late final _username = TextEditingController(text: widget.user?.username);
   final _password = TextEditingController();
   late String _role = widget.user?.role ?? 'standard';
   String? _error;
@@ -37,16 +37,16 @@ class _UserFormDialogState extends State<_UserFormDialog> {
   @override
   void dispose() {
     _name.dispose();
-    _email.dispose();
+    _username.dispose();
     _password.dispose();
     super.dispose();
   }
 
   void _submit() {
     final name = _name.text.trim();
-    final email = _email.text.trim();
-    if (name.isEmpty || email.isEmpty) {
-      setState(() => _error = 'Completá el nombre y el correo.');
+    final username = _username.text.trim();
+    if (name.isEmpty || username.isEmpty) {
+      setState(() => _error = 'Completá el nombre y el usuario.');
       return;
     }
     if (_creating && _password.text.length < 8) {
@@ -55,7 +55,7 @@ class _UserFormDialogState extends State<_UserFormDialog> {
     }
     Navigator.of(context).pop(UserFormResult(
       name: name,
-      email: email,
+      username: username,
       role: _role,
       password: _creating ? _password.text : null,
     ));
@@ -77,9 +77,14 @@ class _UserFormDialogState extends State<_UserFormDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _email,
-              decoration: const InputDecoration(labelText: 'Correo'),
-              keyboardType: TextInputType.emailAddress,
+              controller: _username,
+              decoration: const InputDecoration(
+                labelText: 'Usuario',
+                helperText: 'Una sola palabra: letras, números, punto o guion. Con esto inicia sesión.',
+                helperMaxLines: 2,
+              ),
+              autocorrect: false,
+              enableSuggestions: false,
             ),
             if (_creating) ...[
               const SizedBox(height: 12),

@@ -7,8 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _SignedOut extends AuthNotifier {
+  /// The username and password each sign-in was tried with.
+  static final attempts = <String>[];
+
   @override
   AuthState build() => const AuthState();
+
+  @override
+  Future<void> login(String username, String password) async => attempts.add('$username $password');
 }
 
 const _verdeNoche = Color(0xFF353C2D);
@@ -34,6 +40,29 @@ Future<void> pumpLogin(WidgetTester tester, {required ThemeData theme, Size size
 void main() {
   setUp(() {
     ArcaTheme.useGoogleFonts = false;
+  });
+
+  testWidgets('signing in asks for a username and a password, no email', (tester) async {
+    _SignedOut.attempts.clear();
+    await pumpLogin(tester, theme: ArcaTheme.light());
+
+    expect(find.text('Correo'), findsNothing);
+    expect(find.textContaining('correo'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, 'Usuario'), ' admin ');
+    await tester.enterText(find.widgetWithText(TextField, 'Contraseña'), 'clave123');
+    await tester.tap(find.text('Ingresar'));
+    await tester.pumpAndSettle();
+
+    expect(_SignedOut.attempts, ['admin clave123']);
+  });
+
+  testWidgets('the username field does not autocorrect or capitalize', (tester) async {
+    await pumpLogin(tester, theme: ArcaTheme.light());
+
+    final field = tester.widget<TextField>(find.widgetWithText(TextField, 'Usuario'));
+    expect(field.autocorrect, isFalse);
+    expect(field.textCapitalization, TextCapitalization.none);
+    expect(field.keyboardType, isNot(TextInputType.emailAddress));
   });
 
   testWidgets('in light mode the brand panel is verde noche', (tester) async {
