@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/setlists/{setlist}/reorder', [SetlistSongController::class, 'reorder']);
     Route::put('/setlists/{setlist}/line', [SetlistSongController::class, 'useLine']);
     Route::apiResource('lines', LineController::class);
+    Route::post('/lines/{line}/attachments', [AttachmentController::class, 'storeForLine']);
 
     Route::get('/annexes', [AnnexController::class, 'index']);
     Route::post('/annexes/{annex}/join', [AnnexController::class, 'join']);

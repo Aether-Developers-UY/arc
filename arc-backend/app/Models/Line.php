@@ -13,6 +13,11 @@ class Line extends Model
 {
     protected $fillable = ['name', 'key', 'created_by'];
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class);
+    }
+
     public function lineSongs(): HasMany
     {
         return $this->hasMany(LineSong::class)->orderBy('position');

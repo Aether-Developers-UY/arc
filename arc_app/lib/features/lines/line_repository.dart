@@ -21,6 +21,11 @@ class LineRepository {
         .toList();
   }
 
+  Future<Line> getOne(int id) async {
+    final response = await _apiClient.dio.get('/lines/$id');
+    return Line.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
   Future<Line> create({required String name, required String key, required List<LineSong> songs}) async {
     final response = await _apiClient.dio.post('/lines', data: _body(name, key, songs));
     return Line.fromJson(response.data['data'] as Map<String, dynamic>);

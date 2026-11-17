@@ -12,6 +12,7 @@ class Attachment extends Model
 
     protected $fillable = [
         'song_id',
+        'line_id',
         'type',
         'original_name',
         'file_path',

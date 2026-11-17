@@ -11,10 +11,14 @@ import '../songs/song_picker_screen.dart';
 import 'line.dart';
 import 'line_repository.dart';
 
+/// What the editor did to the line.
+enum LineChange { saved, deleted }
+
 const _keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 /// Creates or edits a line: its name, its key and its songs in order.
-/// Every song goes in the line key unless it is set to change key there. Pops with `true` when something changed.
+/// Every song goes in the line key unless it is set to change key there.
+/// Pops with a [LineChange] when something changed. Pops with `true` when something changed.
 class LineEditorScreen extends ConsumerStatefulWidget {
   const LineEditorScreen({super.key, this.line});
 
@@ -100,7 +104,7 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
       } else {
         await repository.update(line.id, name: name, key: _key!, songs: _songs);
       }
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(LineChange.saved);
     } catch (_) {
       if (mounted) setState(() => _error = 'No se pudo guardar la línea.');
     } finally {
@@ -135,7 +139,7 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
     if (confirmed != true || !mounted) return;
     try {
       await ref.read(lineRepositoryProvider).delete(line.id);
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(LineChange.deleted);
     } catch (_) {
       if (mounted) setState(() => _error = 'No se pudo eliminar la línea.');
     }

@@ -12,8 +12,10 @@ class AttachmentRepository {
 
   final ApiClient _apiClient;
 
+  /// Uploads to [owner], the API path of what the file belongs to:
+  /// 'songs/5' or 'lines/7'.
   Future<Attachment> upload({
-    required int songId,
+    required String owner,
     required PlatformFile file,
     required String type,
   }) async {
@@ -28,7 +30,7 @@ class AttachmentRepository {
     });
 
     final response =
-        await _apiClient.dio.post('/songs/$songId/attachments', data: formData);
+        await _apiClient.dio.post('/$owner/attachments', data: formData);
     return Attachment.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 

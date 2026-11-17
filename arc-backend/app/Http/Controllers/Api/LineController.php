@@ -6,22 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LineRequest;
 use App\Models\Line;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /** The library of lines, shared by everyone like the song library. */
 class LineController extends Controller
 {
-    private const SONG_FIELDS = 'lineSongs.song:id,title,artist,original_key';
+    private const WITH = ['lineSongs.song:id,title,artist,original_key', 'attachments'];
 
     public function index()
     {
-        $lines = Line::query()->with(self::SONG_FIELDS)->orderBy('name')->get();
+        $lines = Line::query()->with(self::WITH)->orderBy('name')->get();
 
         return response()->json(['data' => $lines]);
     }
 
     public function show(Line $line)
     {
-        return response()->json(['data' => $line->load(self::SONG_FIELDS)]);
+        return response()->json(['data' => $line->load(self::WITH)]);
     }
 
     public function store(LineRequest $request)
@@ -37,7 +38,7 @@ class LineController extends Controller
             return $line;
         });
 
-        return response()->json(['data' => $line->load(self::SONG_FIELDS)], 201);
+        return response()->json(['data' => $line->load(self::WITH)], 201);
     }
 
     public function update(LineRequest $request, Line $line)
@@ -48,11 +49,13 @@ class LineController extends Controller
             $this->saveSongs($line, $request->validated('songs'));
         });
 
-        return response()->json(['data' => $line->fresh()->load(self::SONG_FIELDS)]);
+        return response()->json(['data' => $line->fresh()->load(self::WITH)]);
     }
 
     public function destroy(Line $line)
     {
+        // The rows cascade; the stored files have to go by hand.
+        Storage::disk('public')->delete($line->attachments()->pluck('file_path')->all());
         $line->delete();
 
         return response()->noContent();

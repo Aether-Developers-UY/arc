@@ -4,6 +4,7 @@ import 'package:arc_app/features/lines/line_library_screen.dart';
 import 'package:arc_app/features/lines/line_repository.dart';
 import 'package:arc_app/features/songs/song.dart';
 import 'package:arc_app/features/songs/song_list_provider.dart';
+import 'package:arc_app/features/songs/song_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +36,9 @@ class MemoryLines implements LineRepository {
   /// "id|name|key|song:key,song:key" for each save; id empty for a new line.
   final saved = <String>[];
   final deleted = <int>[];
+
+  @override
+  Future<Line> getOne(int id) async => lines.firstWhere((l) => l.id == id);
 
   @override
   Future<List<Line>> list() async => [...lines]..sort((a, b) => a.name.compareTo(b.name));
@@ -72,6 +76,15 @@ final _alabanza = Line(id: 7, name: 'Alabanza', key: 'A', songs: const [
   LineSong(songId: 2, key: 'D', title: 'Santo Espíritu', originalKey: 'D'),
 ]);
 
+/// Any song, written in its own key, for the line view behind the editor.
+class EchoSongs implements SongRepository {
+  @override
+  Future<Song> getOne(int id) async => _song(id, 'Canción $id', 'C');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 late MemoryLines repository;
 
 Future<void> showLibrary(WidgetTester tester, {List<Line>? lines, Size size = const Size(1000, 1000)}) async {
@@ -85,10 +98,19 @@ Future<void> showLibrary(WidgetTester tester, {List<Line>? lines, Size size = co
       overrides: [
         lineRepositoryProvider.overrideWithValue(repository),
         songListProvider.overrideWith(_Library.new),
+        songRepositoryProvider.overrideWithValue(EchoSongs()),
       ],
       child: MaterialApp(theme: ArcaTheme.light(), home: const Scaffold(body: LineLibraryScreen())),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+/// Opens the line's view, then its editor.
+Future<void> openEditor(WidgetTester tester, String name) async {
+  await tester.tap(find.text(name));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byTooltip('Editar línea'));
   await tester.pumpAndSettle();
 }
 
@@ -153,8 +175,7 @@ void main() {
 
   testWidgets('changing the line key moves every song, keeping the step up', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     await tester.tap(find.byTooltip('Tonalidad de la línea'));
     await tester.pumpAndSettle();
@@ -168,8 +189,7 @@ void main() {
 
   testWidgets('a song that changes key is marked in the editor', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     expect(find.text('Cambio de tono'), findsOneWidget);
     final mark = tester.getTopLeft(find.text('Cambio de tono')).dy;
@@ -178,8 +198,7 @@ void main() {
 
   testWidgets('each song in a line can go in another key', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     await tester.tap(find.byTooltip('Tonalidad de Santo Espíritu'));
     await tester.pumpAndSettle();
@@ -193,8 +212,7 @@ void main() {
 
   testWidgets('a song can be taken out of a line', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     await tester.tap(find.byTooltip('Quitar de la línea').first);
     await tester.pumpAndSettle();
@@ -222,8 +240,7 @@ void main() {
 
   testWidgets('dragging changes the order the songs are played', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     final handle = find.byIcon(Icons.drag_indicator).last;
     final gesture = await tester.startGesture(tester.getCenter(handle));
@@ -242,8 +259,7 @@ void main() {
 
   testWidgets('a line can be deleted after confirming', (tester) async {
     await showLibrary(tester);
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     await tester.tap(find.byTooltip('Eliminar línea'));
     await tester.pumpAndSettle();
@@ -257,8 +273,7 @@ void main() {
 
   testWidgets('the editor fits a phone without overflow', (tester) async {
     await showLibrary(tester, size: const Size(360, 740));
-    await tester.tap(find.text('Alabanza'));
-    await tester.pumpAndSettle();
+    await openEditor(tester, 'Alabanza');
 
     expect(tester.takeException(), isNull);
   });

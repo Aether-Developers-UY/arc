@@ -16,12 +16,20 @@ final attachmentRepositoryProvider =
     Provider((ref) => AttachmentRepository(ref.watch(apiClientProvider)));
 
 class AttachmentList extends ConsumerStatefulWidget {
-  const AttachmentList({super.key, required this.song, required this.onChanged});
+  const AttachmentList({
+    super.key,
+    required this.attachments,
+    required this.owner,
+    required this.onChanged,
+  });
 
-  final Song song;
+  final List<Attachment> attachments;
+
+  /// The API path of what the files belong to: 'songs/5' or 'lines/7'.
+  final String owner;
 
   /// Called after a successful upload or delete so the parent can refresh
-  /// the song (and its attachments) from the server.
+  /// the files from the server.
   final VoidCallback onChanged;
 
   @override
@@ -70,7 +78,7 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
 
     try {
       await ref.read(attachmentRepositoryProvider).upload(
-            songId: widget.song.id,
+            owner: widget.owner,
             file: file,
             type: type,
           );
@@ -169,6 +177,7 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
               ),
             ),
             IconButton(
+              tooltip: 'Agregar archivo',
               icon: _isUploading
                   ? const SizedBox(
                       width: 16,
@@ -182,12 +191,12 @@ class _AttachmentListState extends ConsumerState<AttachmentList> {
         ),
         if (_errorMessage != null)
           Text(_errorMessage!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-        if (widget.song.attachments.isEmpty)
+        if (widget.attachments.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Text('Sin archivos adjuntos todavía.'),
           ),
-        for (final attachment in widget.song.attachments)
+        for (final attachment in widget.attachments)
           ListTile(
             leading: attachment.id == _openingId
                 ? const SizedBox(

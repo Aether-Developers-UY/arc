@@ -5,6 +5,7 @@ import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/page_header.dart';
 import 'line.dart';
 import 'line_card.dart';
+import 'line_detail_screen.dart';
 import 'line_editor_screen.dart';
 import 'line_repository.dart';
 
@@ -13,11 +14,19 @@ import 'line_repository.dart';
 class LineLibraryScreen extends ConsumerWidget {
   const LineLibraryScreen({super.key});
 
-  Future<void> _openEditor(BuildContext context, WidgetRef ref, [Line? line]) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => LineEditorScreen(line: line)),
+  Future<void> _create(BuildContext context, WidgetRef ref) async {
+    final change = await Navigator.of(context).push<LineChange>(
+      MaterialPageRoute(builder: (_) => const LineEditorScreen()),
     );
-    if (changed == true) ref.invalidate(lineListProvider);
+    if (change != null) ref.invalidate(lineListProvider);
+  }
+
+  /// The line may be edited, deleted or get files from its view.
+  Future<void> _open(BuildContext context, WidgetRef ref, Line line) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => LineDetailScreen(line: line)),
+    );
+    ref.invalidate(lineListProvider);
   }
 
   @override
@@ -33,7 +42,7 @@ class LineLibraryScreen extends ConsumerWidget {
             trailing: FilledButton.icon(
               icon: const Icon(Icons.add),
               label: const Text('Nueva línea'),
-              onPressed: () => _openEditor(context, ref),
+              onPressed: () => _create(context, ref),
             ),
           ),
           Expanded(
@@ -50,7 +59,7 @@ class LineLibraryScreen extends ConsumerWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) => LineCard(
                           line: lines[index],
-                          onTap: () => _openEditor(context, ref, lines[index]),
+                          onTap: () => _open(context, ref, lines[index]),
                         ),
                       ),
                     ),

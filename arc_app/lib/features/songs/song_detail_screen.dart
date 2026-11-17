@@ -195,7 +195,11 @@ class _SongDetailScreenState extends ConsumerState<SongDetailScreen>
     );
 
     final attachments = ArcaCard(
-      child: AttachmentList(song: _song, onChanged: _refreshSongAttachments),
+      child: AttachmentList(
+        attachments: _song.attachments,
+        owner: 'songs/${_song.id}',
+        onChanged: _refreshSongAttachments,
+      ),
     );
 
     return Scaffold(
