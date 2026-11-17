@@ -36,7 +36,7 @@ Song librarySong(int id, String title, String key) => Song(
       attachments: const [],
     );
 
-final alabanza = Line(id: 7, name: 'Alabanza', songs: const [
+final alabanza = Line(id: 7, name: 'Alabanza', key: 'A', songs: const [
   LineSong(songId: 21, key: 'A', title: 'Poderoso', originalKey: 'C'),
   LineSong(songId: 22, key: 'D', title: 'Santo Espíritu', originalKey: 'D'),
 ]);

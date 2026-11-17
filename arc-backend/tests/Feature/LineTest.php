@@ -25,37 +25,40 @@ class LineTest extends TestCase
         $this->getJson('/api/lines')->assertUnauthorized();
     }
 
-    public function test_a_line_is_created_with_its_songs_in_order_and_their_keys(): void
+    public function test_a_line_is_in_one_key_and_its_songs_follow_it_unless_one_goes_up(): void
     {
         $user = User::factory()->create();
         [$a, $b, $c] = $this->songs($user, ['G', 'D', 'A']);
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/lines', [
             'name' => 'Alabanza alegre',
+            'key' => 'C',
             'songs' => [
-                ['song_id' => $b->id, 'key' => 'E'],
+                ['song_id' => $b->id],
                 ['song_id' => $a->id],
-                ['song_id' => $c->id, 'key' => 'A'],
+                ['song_id' => $c->id, 'key' => 'D'], // a step up for the last one
             ],
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('data.name', 'Alabanza alegre')
+            ->assertJsonPath('data.key', 'C')
             ->assertJsonCount(3, 'data.line_songs')
             ->assertJsonPath('data.line_songs.0.song_id', $b->id)
-            ->assertJsonPath('data.line_songs.0.key', 'E')
-            ->assertJsonPath('data.line_songs.1.key', 'G') // the song's own key by default
+            ->assertJsonPath('data.line_songs.0.key', 'C')
+            ->assertJsonPath('data.line_songs.1.key', 'C')
             ->assertJsonPath('data.line_songs.1.song.title', $a->title)
-            ->assertJsonPath('data.line_songs.2.song_id', $c->id);
+            ->assertJsonPath('data.line_songs.2.song_id', $c->id)
+            ->assertJsonPath('data.line_songs.2.key', 'D');
     }
 
-    public function test_a_line_needs_a_name_and_at_least_one_song(): void
+    public function test_a_line_needs_a_name_a_key_and_at_least_one_song(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user, 'sanctum')->postJson('/api/lines', ['name' => '', 'songs' => []])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'songs']);
+            ->assertJsonValidationErrors(['name', 'key', 'songs']);
     }
 
     public function test_a_line_cannot_use_a_song_that_does_not_exist(): void
@@ -63,7 +66,7 @@ class LineTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user, 'sanctum')->postJson('/api/lines', [
-            'name' => 'Línea', 'songs' => [['song_id' => 999]],
+            'name' => 'Línea', 'key' => 'G', 'songs' => [['song_id' => 999]],
         ])->assertStatus(422)->assertJsonValidationErrors(['songs.0.song_id']);
     }
 
@@ -71,8 +74,8 @@ class LineTest extends TestCase
     {
         $user = User::factory()->create();
         [$a] = $this->songs($user, ['G']);
-        $this->actingAs($user, 'sanctum')->postJson('/api/lines', ['name' => 'Zeta', 'songs' => [['song_id' => $a->id]]]);
-        $this->actingAs($user, 'sanctum')->postJson('/api/lines', ['name' => 'Adoración', 'songs' => [['song_id' => $a->id]]]);
+        $this->actingAs($user, 'sanctum')->postJson('/api/lines', ['name' => 'Zeta', 'key' => 'G', 'songs' => [['song_id' => $a->id]]]);
+        $this->actingAs($user, 'sanctum')->postJson('/api/lines', ['name' => 'Adoración', 'key' => 'G', 'songs' => [['song_id' => $a->id]]]);
 
         $other = User::factory()->create();
         $this->actingAs($other, 'sanctum')->getJson('/api/lines')
@@ -87,11 +90,11 @@ class LineTest extends TestCase
         $user = User::factory()->create();
         [$a, $b] = $this->songs($user, ['G', 'D']);
         $id = $this->actingAs($user, 'sanctum')->postJson('/api/lines', [
-            'name' => 'Vieja', 'songs' => [['song_id' => $a->id], ['song_id' => $b->id]],
+            'name' => 'Vieja', 'key' => 'G', 'songs' => [['song_id' => $a->id], ['song_id' => $b->id]],
         ])->json('data.id');
 
         $this->actingAs($user, 'sanctum')->putJson("/api/lines/{$id}", [
-            'name' => 'Nueva', 'songs' => [['song_id' => $b->id, 'key' => 'C']],
+            'name' => 'Nueva', 'key' => 'G', 'songs' => [['song_id' => $b->id, 'key' => 'C']],
         ])->assertOk()
             ->assertJsonPath('data.name', 'Nueva')
             ->assertJsonCount(1, 'data.line_songs')
@@ -105,7 +108,7 @@ class LineTest extends TestCase
         $user = User::factory()->create();
         [$a] = $this->songs($user, ['G']);
         $id = $this->actingAs($user, 'sanctum')->postJson('/api/lines', [
-            'name' => 'Línea', 'songs' => [['song_id' => $a->id]],
+            'name' => 'Línea', 'key' => 'G', 'songs' => [['song_id' => $a->id]],
         ])->json('data.id');
 
         $this->actingAs($user, 'sanctum')->deleteJson("/api/lines/{$id}")->assertNoContent();
@@ -119,7 +122,7 @@ class LineTest extends TestCase
         $user = User::factory()->create();
         [$a, $b] = $this->songs($user, ['G', 'D']);
         $id = $this->actingAs($user, 'sanctum')->postJson('/api/lines', [
-            'name' => 'Línea', 'songs' => [['song_id' => $a->id], ['song_id' => $b->id]],
+            'name' => 'Línea', 'key' => 'G', 'songs' => [['song_id' => $a->id], ['song_id' => $b->id]],
         ])->json('data.id');
 
         $this->actingAs($user, 'sanctum')->deleteJson("/api/songs/{$a->id}")->assertNoContent();

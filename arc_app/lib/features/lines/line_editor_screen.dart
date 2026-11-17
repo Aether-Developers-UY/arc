@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/chordpro/transposer.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
@@ -12,8 +13,8 @@ import 'line_repository.dart';
 
 const _keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-/// Creates or edits a line: its name and its songs, in order, each in
-/// the key the line plays it. Pops with `true` when something changed.
+/// Creates or edits a line: its name, its key and its songs in order.
+/// Every song goes in the line key unless it is set to change key there. Pops with `true` when something changed.
 class LineEditorScreen extends ConsumerStatefulWidget {
   const LineEditorScreen({super.key, this.line});
 
@@ -27,6 +28,9 @@ class LineEditorScreen extends ConsumerStatefulWidget {
 class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
   late final _name = TextEditingController(text: widget.line?.name ?? '');
   late List<LineSong> _songs = [...?widget.line?.songs];
+
+  /// The line key; a new line takes the key of its first song.
+  late String? _key = widget.line?.key;
   String? _error;
   bool _saving = false;
 
@@ -41,16 +45,38 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
       MaterialPageRoute(builder: (_) => const SongPickerScreen(title: 'Agregar a la línea')),
     );
     if (song == null) return;
-    setState(() => _songs = [
-          ..._songs,
-          LineSong(
-            songId: song.id,
-            key: song.originalKey,
-            title: song.title,
-            artist: song.artist,
-            originalKey: song.originalKey,
-          ),
-        ]);
+    final key = _key ?? song.originalKey;
+    setState(() {
+      _key = key;
+      _songs = [
+        ..._songs,
+        LineSong(
+          songId: song.id,
+          key: key,
+          title: song.title,
+          artist: song.artist,
+          originalKey: song.originalKey,
+        ),
+      ];
+    });
+  }
+
+  /// Moves the whole line to [key]: every song by the same interval, so a
+  /// song that goes up a step still goes up a step.
+  void _setLineKey(String key) {
+    final from = _key;
+    if (from == null) {
+      setState(() => _key = key);
+      return;
+    }
+    final steps = semitonesBetweenKeys(from: from, to: key);
+    final flats = key.contains('b');
+    setState(() {
+      _key = key;
+      _songs = [
+        for (final s in _songs) s.withKey(transposeChord(s.key, semitones: steps, preferFlats: flats)),
+      ];
+    });
   }
 
   Future<void> _save() async {
@@ -59,7 +85,9 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
         ? 'Poné un nombre a la línea.'
         : _songs.isEmpty
             ? 'Agregá al menos una canción.'
-            : null;
+            : _key == null
+                ? 'Elegí la tonalidad de la línea.'
+                : null;
     setState(() => _error = error);
     if (error != null) return;
 
@@ -68,9 +96,9 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
       final repository = ref.read(lineRepositoryProvider);
       final line = widget.line;
       if (line == null) {
-        await repository.create(name: name, songs: _songs);
+        await repository.create(name: name, key: _key!, songs: _songs);
       } else {
-        await repository.update(line.id, name: name, songs: _songs);
+        await repository.update(line.id, name: name, key: _key!, songs: _songs);
       }
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
@@ -146,12 +174,28 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej.: Alabanza alegre'),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Text('Canciones, en el orden en que se tocan', style: text.titleSmall)),
+                Flexible(child: Text('Tonalidad de la línea', style: text.titleSmall)),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  tooltip: 'Tonalidad de la línea',
+                  onSelected: _setLineKey,
+                  itemBuilder: (_) => [
+                    for (final key in {..._keys, ?_key}) PopupMenuItem(value: key, child: Text(key)),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: _key == null
+                        ? Text('Elegir', style: TextStyle(color: Theme.of(context).colorScheme.primary))
+                        : KeyBadge(_key!),
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 12),
+            Text('Canciones, en el orden en que se tocan', style: text.titleSmall),
             const SizedBox(height: 8),
             Expanded(
               child: ReorderableListView.builder(
@@ -189,20 +233,39 @@ class _LineEditorScreenState extends ConsumerState<LineEditorScreen> {
                             ),
                           ),
                           Expanded(
-                            child: Text(
-                              song.title,
-                              overflow: TextOverflow.ellipsis,
-                              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  song.title,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                if (_key != null && song.key != _key)
+                                  Text(
+                                    'Cambio de tono',
+                                    style: text.labelMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           PopupMenuButton<String>(
                             tooltip: 'Tonalidad de ${song.title}',
                             onSelected: (key) => setState(() => _songs[index] = song.withKey(key)),
                             itemBuilder: (_) => [
-                              for (final key in {..._keys, song.originalKey})
+                              for (final key in {..._keys, ?_key, song.originalKey})
                                 PopupMenuItem(
                                   value: key,
-                                  child: Text(key == song.originalKey ? '$key (original)' : key),
+                                  child: Text(
+                                    key == _key
+                                        ? '$key (la de la línea)'
+                                        : key == song.originalKey
+                                            ? '$key (original)'
+                                            : key,
+                                  ),
                                 ),
                             ],
                             child: Padding(

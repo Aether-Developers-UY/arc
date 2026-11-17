@@ -44,6 +44,7 @@ class SetlistSectionTest extends TestCase
     {
         return $this->actingAs($this->user, 'sanctum')->postJson('/api/lines', [
             'name' => $name,
+            'key' => 'G',
             'songs' => array_map(fn ($s) => is_array($s) ? $s : ['song_id' => $s->id], $songs),
         ])->json('data.id');
     }
@@ -111,7 +112,7 @@ class SetlistSectionTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.setlist_songs.1.key', 'A')
             ->assertJsonPath('data.setlist_songs.1.line.name', 'Alabanza')
-            ->assertJsonPath('data.setlist_songs.2.key', 'D');
+            ->assertJsonPath('data.setlist_songs.2.key', 'G'); // the line's key
         $this->assertSame([
             [$inicio->id, 'inicio'],
             [$a->id, 'linea'],
@@ -140,7 +141,7 @@ class SetlistSectionTest extends TestCase
         $this->actingAs($this->user, 'sanctum')->putJson("/api/setlists/{$this->setlist->id}/line", ['line_id' => $lineId]);
 
         $this->actingAs($this->user, 'sanctum')->putJson("/api/lines/{$lineId}", [
-            'name' => 'Alabanza', 'songs' => [['song_id' => $b->id]],
+            'name' => 'Alabanza', 'key' => 'G', 'songs' => [['song_id' => $b->id]],
         ]);
         $this->actingAs($this->user, 'sanctum')->deleteJson("/api/lines/{$lineId}");
 

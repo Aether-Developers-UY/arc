@@ -5,8 +5,8 @@ import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import 'line.dart';
 
-/// A line in a list: its name, its songs in order and the keys they go
-/// through ("G → A → D").
+/// A line in a list: its key, its name and its songs in order, plus the
+/// keys they go through ("C → C → D") when a song changes key.
 class LineCard extends StatelessWidget {
   const LineCard({super.key, required this.line, this.onTap});
 
@@ -30,8 +30,10 @@ class LineCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${line.songs.length}',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: scheme.primary),
+              line.key,
+              style: ArcaTheme.mono(
+                TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: scheme.primary),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -48,12 +50,18 @@ class LineCard extends StatelessWidget {
                   style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  line.songs.map((s) => s.key).join(' → '),
-                  style: ArcaTheme.mono(
-                    TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: scheme.primary),
+                if (line.changesKey)
+                  Text(
+                    line.songs.map((s) => s.key).join(' → '),
+                    style: ArcaTheme.mono(
+                      TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: scheme.primary),
+                    ),
+                  )
+                else
+                  Text(
+                    line.songs.length == 1 ? '1 canción' : '${line.songs.length} canciones',
+                    style: text.labelMedium?.copyWith(color: context.arca.textSecondary),
                   ),
-                ),
               ],
             ),
           ),

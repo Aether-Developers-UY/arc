@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LineRequest;
 use App\Models\Line;
-use App\Models\Song;
 use Illuminate\Support\Facades\DB;
 
 /** The library of lines, shared by everyone like the song library. */
@@ -30,6 +29,7 @@ class LineController extends Controller
         $line = DB::transaction(function () use ($request) {
             $line = Line::create([
                 'name' => $request->validated('name'),
+                'key' => $request->validated('key'),
                 'created_by' => $request->user()->id,
             ]);
             $this->saveSongs($line, $request->validated('songs'));
@@ -43,7 +43,7 @@ class LineController extends Controller
     public function update(LineRequest $request, Line $line)
     {
         DB::transaction(function () use ($request, $line) {
-            $line->update(['name' => $request->validated('name')]);
+            $line->update($request->safe()->only(['name', 'key']));
             $line->lineSongs()->delete();
             $this->saveSongs($line, $request->validated('songs'));
         });
@@ -58,16 +58,14 @@ class LineController extends Controller
         return response()->noContent();
     }
 
-    /** Each song in the given order, in its key or the song's own. */
+    /** Each song in the given order, in its own key or the line's. */
     private function saveSongs(Line $line, array $songs): void
     {
-        $originalKeys = Song::whereIn('id', array_column($songs, 'song_id'))->pluck('original_key', 'id');
-
         foreach (array_values($songs) as $position => $song) {
             $line->lineSongs()->create([
                 'song_id' => $song['song_id'],
                 'position' => $position,
-                'key' => $song['key'] ?? $originalKeys[$song['song_id']],
+                'key' => $song['key'] ?? $line->key,
             ]);
         }
     }

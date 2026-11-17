@@ -32,16 +32,16 @@ class MemoryLines implements LineRepository {
   MemoryLines(this.lines);
 
   final List<Line> lines;
-  /// "id|name|song:key,song:key" for each save; id empty for a new line.
+  /// "id|name|key|song:key,song:key" for each save; id empty for a new line.
   final saved = <String>[];
   final deleted = <int>[];
 
   @override
   Future<List<Line>> list() async => [...lines]..sort((a, b) => a.name.compareTo(b.name));
 
-  Line _store(int id, String name, List<LineSong> songs) {
-    saved.add([id < 1000 ? id : '', name, [for (final s in songs) '${s.songId}:${s.key}'].join(',')].join('|'));
-    final line = Line(id: id, name: name, songs: songs);
+  Line _store(int id, String name, String key, List<LineSong> songs) {
+    saved.add([id < 1000 ? id : '', name, key, [for (final s in songs) '${s.songId}:${s.key}'].join(',')].join('|'));
+    final line = Line(id: id, name: name, key: key, songs: songs);
     lines
       ..removeWhere((l) => l.id == id)
       ..add(line);
@@ -49,12 +49,12 @@ class MemoryLines implements LineRepository {
   }
 
   @override
-  Future<Line> create({required String name, required List<LineSong> songs}) async =>
-      _store(1000 + lines.length, name, songs);
+  Future<Line> create({required String name, required String key, required List<LineSong> songs}) async =>
+      _store(1000 + lines.length, name, key, songs);
 
   @override
-  Future<Line> update(int id, {required String name, required List<LineSong> songs}) async =>
-      _store(id, name, songs);
+  Future<Line> update(int id, {required String name, required String key, required List<LineSong> songs}) async =>
+      _store(id, name, key, songs);
 
   @override
   Future<void> delete(int id) async {
@@ -66,7 +66,8 @@ class MemoryLines implements LineRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-final _alabanza = Line(id: 7, name: 'Alabanza', songs: const [
+/// In A, going up to D for the second song.
+final _alabanza = Line(id: 7, name: 'Alabanza', key: 'A', songs: const [
   LineSong(songId: 1, key: 'A', title: 'Poderoso', originalKey: 'C'),
   LineSong(songId: 2, key: 'D', title: 'Santo Espíritu', originalKey: 'D'),
 ]);
@@ -118,7 +119,7 @@ void main() {
     expect(find.textContaining('Todavía no hay líneas'), findsOneWidget);
   });
 
-  testWidgets('a new line is built from library songs, in their own key by default', (tester) async {
+  testWidgets('a new line takes the key of its first song, and every song follows the line', (tester) async {
     await showLibrary(tester, lines: []);
 
     await tester.tap(find.text('Nueva línea'));
@@ -130,11 +131,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.saved, [
-      '|Adoración|3:B,1:C',
+      '|Adoración|B|3:B,1:B',
     ]);
     // Back in the library, with the new line.
     expect(find.text('Adoración'), findsOneWidget);
     expect(find.text('Digno · Poderoso'), findsOneWidget);
+  });
+
+  testWidgets('the line key is shown, and the keys only when a song changes key', (tester) async {
+    await showLibrary(tester, lines: [
+      Line(id: 8, name: 'Pareja', key: 'G', songs: const [
+        LineSong(songId: 1, key: 'G', title: 'Poderoso', originalKey: 'C'),
+        LineSong(songId: 3, key: 'G', title: 'Digno', originalKey: 'B'),
+      ]),
+    ]);
+
+    expect(find.text('G'), findsOneWidget);
+    expect(find.textContaining('→'), findsNothing);
+    expect(find.text('2 canciones'), findsOneWidget);
+  });
+
+  testWidgets('changing the line key moves every song, keeping the step up', (tester) async {
+    await showLibrary(tester);
+    await tester.tap(find.text('Alabanza'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Tonalidad de la línea'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('B').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(repository.saved.single, '7|Alabanza|B|1:B,2:E');
+  });
+
+  testWidgets('a song that changes key is marked in the editor', (tester) async {
+    await showLibrary(tester);
+    await tester.tap(find.text('Alabanza'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cambio de tono'), findsOneWidget);
+    final mark = tester.getTopLeft(find.text('Cambio de tono')).dy;
+    expect(mark, greaterThan(tester.getTopLeft(find.text('Santo Espíritu')).dy));
   });
 
   testWidgets('each song in a line can go in another key', (tester) async {
@@ -149,7 +188,7 @@ void main() {
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
-    expect(repository.saved.single, '7|Alabanza|1:A,2:E');
+    expect(repository.saved.single, '7|Alabanza|A|1:A,2:E');
   });
 
   testWidgets('a song can be taken out of a line', (tester) async {
@@ -162,7 +201,7 @@ void main() {
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
-    expect(repository.saved.single, '7|Alabanza|2:D');
+    expect(repository.saved.single, '7|Alabanza|A|2:D');
   });
 
   testWidgets('a line needs a name and at least one song', (tester) async {
@@ -198,7 +237,7 @@ void main() {
     await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
-    expect(repository.saved.single, '7|Alabanza|2:D,1:A');
+    expect(repository.saved.single, '7|Alabanza|A|2:D,1:A');
   });
 
   testWidgets('a line can be deleted after confirming', (tester) async {

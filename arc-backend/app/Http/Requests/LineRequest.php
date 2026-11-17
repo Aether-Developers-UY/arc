@@ -15,6 +15,7 @@ class LineRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:120'],
+            'key' => ['required', 'string', 'max:8'],
             'songs' => ['required', 'array', 'min:1'],
             'songs.*.song_id' => ['required', 'integer', 'exists:songs,id'],
             'songs.*.key' => ['nullable', 'string', 'max:8'],
@@ -25,6 +26,7 @@ class LineRequest extends FormRequest
     {
         return [
             'name.required' => 'Poné un nombre a la línea.',
+            'key.required' => 'Elegí la tonalidad de la línea.',
             'songs.required' => 'Agregá al menos una canción.',
             'songs.min' => 'Agregá al menos una canción.',
         ];

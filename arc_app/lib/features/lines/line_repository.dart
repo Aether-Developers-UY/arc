@@ -21,20 +21,21 @@ class LineRepository {
         .toList();
   }
 
-  Future<Line> create({required String name, required List<LineSong> songs}) async {
-    final response = await _apiClient.dio.post('/lines', data: _body(name, songs));
+  Future<Line> create({required String name, required String key, required List<LineSong> songs}) async {
+    final response = await _apiClient.dio.post('/lines', data: _body(name, key, songs));
     return Line.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
-  Future<Line> update(int id, {required String name, required List<LineSong> songs}) async {
-    final response = await _apiClient.dio.put('/lines/$id', data: _body(name, songs));
+  Future<Line> update(int id, {required String name, required String key, required List<LineSong> songs}) async {
+    final response = await _apiClient.dio.put('/lines/$id', data: _body(name, key, songs));
     return Line.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   Future<void> delete(int id) => _apiClient.dio.delete('/lines/$id');
 
-  Map<String, dynamic> _body(String name, List<LineSong> songs) => {
+  Map<String, dynamic> _body(String name, String key, List<LineSong> songs) => {
         'name': name,
+        'key': key,
         'songs': [for (final s in songs) s.toRequestJson()],
       };
 }

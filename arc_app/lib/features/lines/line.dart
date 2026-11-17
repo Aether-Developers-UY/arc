@@ -31,13 +31,15 @@ class LineSong {
   Map<String, dynamic> toRequestJson() => {'song_id': songId, 'key': key};
 }
 
-/// Songs from the library played back to back ("enganchadas").
+/// Songs from the library played back to back ("enganchadas"), in one
+/// key; a song keeps a key of its own where the line goes up a step.
 class Line {
-  const Line({required this.id, required this.name, required this.songs});
+  const Line({required this.id, required this.name, required this.key, required this.songs});
 
   factory Line.fromJson(Map<String, dynamic> json) => Line(
         id: json['id'] as int,
         name: json['name'] as String,
+        key: json['key'] as String? ?? 'C',
         songs: (json['line_songs'] as List<dynamic>? ?? [])
             .map((s) => LineSong.fromJson(s as Map<String, dynamic>))
             .toList(),
@@ -45,5 +47,9 @@ class Line {
 
   final int id;
   final String name;
+  final String key;
   final List<LineSong> songs;
+
+  /// True when some song is not in the line key.
+  bool get changesKey => songs.any((s) => s.key != key);
 }
