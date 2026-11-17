@@ -1,0 +1,10 @@
+// Cloudflare Workers: serves the Flutter web build as a static site.
+// Build: `bash arc_app/scripts/build_web.sh` · Deploy: `npx wrangler deploy`.
+{
+  "name": "arca",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./arc_app/build/web",
+    "not_found_handling": "single-page-application"
+  }
+}

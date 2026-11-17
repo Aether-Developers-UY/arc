@@ -27,7 +27,9 @@ class ApiClient {
     );
   }
 
-  static const baseUrl = 'http://localhost:4200/api';
+  /// The backend. A published build sets it when compiling:
+  /// `flutter build web --dart-define=API_URL=https://servidor/api`.
+  static const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:4200/api');
 
   final TokenStorage _tokenStorage;
   late final Dio _dio;
