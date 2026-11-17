@@ -66,6 +66,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       children: [
         HomeScreen(
           onOpenSongs: () => _select(1),
+          onOpenLines: () => _select(2),
           onOpenSetlists: () => _select(3),
           onChooseAnnexes: _manageAnnexes,
         ),
@@ -84,6 +85,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               destinations: destinations,
               selectedIndex: index,
               onSelect: _select,
+              onHome: () => _select(0),
               onLogout: _logout,
               userName: ref.watch(authProvider).user?.name,
               annexSelector: AnnexSelector(onManage: _manageAnnexes),
@@ -99,7 +101,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        title: const ArcaLogo(size: 36, showWordmark: true, wordmarkSize: 22),
+        title: _HomeLink(
+          onTap: () => _select(0),
+          child: const ArcaLogo(size: 36, showWordmark: true, wordmarkSize: 22),
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(40),
           child: Padding(
@@ -146,6 +151,7 @@ class _Sidebar extends StatelessWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onSelect,
+    required this.onHome,
     required this.onLogout,
     required this.userName,
     required this.annexSelector,
@@ -155,6 +161,7 @@ class _Sidebar extends StatelessWidget {
   final List<_Destination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+  final VoidCallback onHome;
   final VoidCallback onLogout;
   final String? userName;
   final Widget annexSelector;
@@ -170,9 +177,12 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 16),
-            child: ArcaLogo(size: 46, showWordmark: true),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 16),
+            child: _HomeLink(
+              onTap: onHome,
+              child: const ArcaLogo(size: 46, showWordmark: true),
+            ),
           ),
           for (var i = 0; i < destinations.length; i++)
             _SidebarItem(
@@ -220,6 +230,29 @@ class _Sidebar extends StatelessWidget {
             onTap: onLogout,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The logo and name, which lead back to Inicio from anywhere.
+class _HomeLink extends StatelessWidget {
+  const _HomeLink({required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Ir al inicio',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: child,
+        ),
       ),
     );
   }

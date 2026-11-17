@@ -188,6 +188,43 @@ void main() {
     expect(find.text(_songsSubtitle), findsOneWidget);
   });
 
+  testWidgets('Biblioteca de líneas jumps to the Líneas tab', (tester) async {
+    await pumpShell(tester, size: const Size(1200, 900));
+
+    await tester.tap(find.text('Biblioteca de líneas'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Canciones enganchadas, listas para el culto'), findsOneWidget);
+  });
+
+  testWidgets('the shortcuts follow the tabs: canciones, líneas, setlists', (tester) async {
+    await pumpShell(tester, size: const Size(1200, 900));
+
+    final songs = tester.getCenter(find.text('Biblioteca de canciones')).dx;
+    final lines = tester.getCenter(find.text('Biblioteca de líneas')).dx;
+    final setlists = tester.getCenter(find.text('Todos los setlists')).dx;
+    expect(songs, lessThan(lines));
+    expect(lines, lessThan(setlists));
+    expect(find.text('Próximamente'), findsNothing);
+  });
+
+  for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {
+    for (final target in ['logo', 'name']) {
+      testWidgets('tapping the $target goes back to Inicio ($label)', (tester) async {
+        await pumpShell(tester, size: size);
+        await tester.tap(find.text('Setlists').last);
+        await tester.pumpAndSettle();
+        expect(find.text(_setlistsSubtitle), findsOneWidget);
+
+        await tester.tap(target == 'logo' ? find.byType(Image).first : find.text('Arca'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Todavía no elegiste un culto'), findsOneWidget);
+        expect(find.byTooltip('Ir al inicio'), findsOneWidget);
+      });
+    }
+  }
+
   testWidgets('Todos los setlists jumps to the Setlists tab', (tester) async {
     await pumpShell(tester, size: const Size(1200, 900));
 

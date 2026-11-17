@@ -18,11 +18,13 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({
     super.key,
     required this.onOpenSongs,
+    required this.onOpenLines,
     required this.onOpenSetlists,
     required this.onChooseAnnexes,
   });
 
   final VoidCallback onOpenSongs;
+  final VoidCallback onOpenLines;
   final VoidCallback onOpenSetlists;
 
   /// Opens Mis anexos, from the prompt shown while the user has none.
@@ -38,11 +40,15 @@ class HomeScreen extends ConsumerWidget {
         onTap: onOpenSongs,
       ),
       _ShortcutCard(
+        icon: Icons.queue_music_outlined,
+        label: 'Biblioteca de líneas',
+        onTap: onOpenLines,
+      ),
+      _ShortcutCard(
         icon: Icons.event_note_outlined,
         label: 'Todos los setlists',
         onTap: onOpenSetlists,
       ),
-      const _ShortcutCard(icon: Icons.auto_awesome_outlined, label: 'Próximamente', muted: true),
     ];
 
     return ContentFrame(
@@ -212,37 +218,24 @@ class _OutlinedBlock extends StatelessWidget {
 }
 
 class _ShortcutCard extends StatelessWidget {
-  const _ShortcutCard({required this.icon, required this.label, this.onTap, this.muted = false});
+  const _ShortcutCard({required this.icon, required this.label, required this.onTap});
 
   final IconData icon;
   final String label;
-  final VoidCallback? onTap;
-  final bool muted;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = muted ? context.arca.textSecondary : Theme.of(context).colorScheme.primary;
-    final content = Row(
-      children: [
-        Icon(icon, color: color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: muted ? context.arca.textSecondary : null,
-            ),
-          ),
-        ),
-        if (!muted) Icon(Icons.chevron_right, color: context.arca.textSecondary),
-      ],
+    return ArcaCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Icon(Icons.chevron_right, color: context.arca.textSecondary),
+        ],
+      ),
     );
-    if (muted) {
-      return _OutlinedBlock(
-        child: Padding(padding: const EdgeInsets.all(16), child: content),
-      );
-    }
-    return ArcaCard(onTap: onTap, child: content);
   }
 }

@@ -50,6 +50,7 @@ Future<void> pumpHome(
         home: Scaffold(
           body: HomeScreen(
             onOpenSongs: () => songsTaps++,
+            onOpenLines: () {},
             onOpenSetlists: () => setlistsTaps++,
             onChooseAnnexes: () => chooseAnnexTaps++,
           ),
@@ -82,7 +83,7 @@ void main() {
     expect(find.text('Elegir setlist'), findsOneWidget);
     expect(find.text('Biblioteca de canciones'), findsOneWidget);
     expect(find.text('Todos los setlists'), findsOneWidget);
-    expect(find.text('Próximamente'), findsOneWidget);
+    expect(find.text('Biblioteca de líneas'), findsOneWidget);
   });
 
   testWidgets('does not flash the empty state while the pinned ids load', (tester) async {

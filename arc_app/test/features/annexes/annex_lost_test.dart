@@ -83,7 +83,7 @@ void main() {
   testWidgets('a lost annex keeps its pins', (tester) async {
     await pump(
       tester,
-      HomeScreen(onOpenSongs: () {}, onOpenSetlists: () {}, onChooseAnnexes: () {}),
+      HomeScreen(onOpenSongs: () {}, onOpenLines: () {}, onOpenSetlists: () {}, onChooseAnnexes: () {}),
       stored: {'pinned_setlist_ids_1': ['5']},
     );
 
