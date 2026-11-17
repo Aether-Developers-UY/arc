@@ -15,16 +15,25 @@ class SongController extends Controller
     {
         $songs = Song::query()
             ->with('attachments')
-            ->when($request->query('search'), function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('artist', 'like', "%{$search}%");
+            ->when(trim((string) $request->query('search')), function ($query, $search) {
+                $like = '%'.self::escapeLike($search).'%';
+                $lyrics = '%'.self::escapeLike(Song::normalizeForSearch($search)).'%';
+                $query->where(function ($q) use ($like, $lyrics) {
+                    $q->whereRaw("title like ? escape '!'", [$like])
+                        ->orWhereRaw("artist like ? escape '!'", [$like])
+                        ->orWhereRaw("lyrics like ? escape '!'", [$lyrics]);
                 });
             })
             ->orderBy('title')
             ->get();
 
         return response()->json(['data' => $songs]);
+    }
+
+    /** Makes % and _ in what was typed match themselves. */
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 
     public function store(StoreSongRequest $request)

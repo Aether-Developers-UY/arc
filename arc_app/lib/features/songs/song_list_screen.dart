@@ -9,6 +9,7 @@ import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/key_badge.dart';
 import '../../core/widgets/page_header.dart';
 import '../../core/widgets/view_mode_toggle.dart';
+import 'lyric_search.dart';
 import 'song_detail_screen.dart';
 import 'song_editor_screen.dart';
 import 'song.dart';
@@ -26,10 +27,24 @@ class SongListScreen extends ConsumerStatefulWidget {
 class _SongListScreenState extends ConsumerState<SongListScreen> {
   final _searchController = TextEditingController();
 
+  /// The search the list is showing (what was submitted, not what is being
+  /// typed): it decides the lyric phrases and the no-results message.
+  String _query = '';
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _search(String value) {
+    setState(() => _query = value.trim());
+    ref.read(songListProvider.notifier).search(_query);
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _search('');
   }
 
   @override
@@ -55,14 +70,24 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Buscar por título o artista',
+                child: ValueListenableBuilder(
+                  valueListenable: _searchController,
+                  builder: (context, value, _) => TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Buscar por título, artista o letra',
+                      suffixIcon: value.text.isEmpty && _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Limpiar búsqueda',
+                              icon: const Icon(Icons.close),
+                              onPressed: _clearSearch,
+                            ),
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: _search,
                   ),
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (value) => ref.read(songListProvider.notifier).search(value),
                 ),
               ),
               const SizedBox(width: 12),
@@ -73,11 +98,17 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
           Expanded(
             child: songsAsync.when(
               data: (songs) => songs.isEmpty
-                  ? _EmptyState(
-                      icon: Icons.library_music_outlined,
-                      title: 'Todavía no hay canciones',
-                      message: 'Agregá la primera con «Nueva canción».',
-                    )
+                  ? _query.isNotEmpty
+                      ? _EmptyState(
+                          icon: Icons.search_off,
+                          title: 'Sin resultados',
+                          message: 'Ninguna canción tiene «$_query» en el título, el artista o la letra.',
+                        )
+                      : _EmptyState(
+                          icon: Icons.library_music_outlined,
+                          title: 'Todavía no hay canciones',
+                          message: 'Agregá la primera con «Nueva canción».',
+                        )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(songListProvider.notifier).refresh(),
                       child: viewMode == ViewMode.grid
@@ -90,13 +121,15 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                                 mainAxisSpacing: 12,
                               ),
                               itemCount: songs.length,
-                              itemBuilder: (context, index) => _SongBlock(song: songs[index]),
+                              itemBuilder: (context, index) =>
+                                  _SongBlock(song: songs[index], match: _lyricMatchFor(songs[index])),
                             )
                           : ListView.separated(
                               padding: const EdgeInsets.only(bottom: 24),
                               itemCount: songs.length,
                               separatorBuilder: (context, index) => const SizedBox(height: 10),
-                              itemBuilder: (context, index) => _SongRow(song: songs[index]),
+                              itemBuilder: (context, index) =>
+                                  _SongRow(song: songs[index], match: _lyricMatchFor(songs[index])),
                             ),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -111,6 +144,60 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
       ),
     );
   }
+
+  /// The lyric phrase to show under a search result, only when the title
+  /// and artist don't already explain why the song is there.
+  LyricMatch? _lyricMatchFor(Song song) {
+    if (_query.isEmpty || matchesTitleOrArtist(song.title, song.artist, _query)) return null;
+    return lyricMatch(song.content, _query);
+  }
+}
+
+/// A line of lyric with the searched words in bold.
+class _LyricSnippet extends StatelessWidget {
+  const _LyricSnippet(this.match, {required this.maxLines});
+
+  final LyricMatch match;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: context.arca.textSecondary,
+          fontStyle: FontStyle.italic,
+          height: 1.3,
+        );
+    return Row(
+      key: const Key('lyric-match'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1, right: 6),
+          child: Icon(Icons.lyrics_outlined, size: 14, color: context.arca.textSecondary),
+        ),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              style: base,
+              children: [
+                TextSpan(text: match.before),
+                TextSpan(
+                  text: match.match,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                TextSpan(text: match.after),
+              ],
+            ),
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 void _openSong(BuildContext context, Song song) => Navigator.of(context).push(
@@ -119,9 +206,10 @@ void _openSong(BuildContext context, Song song) => Navigator.of(context).push(
 
 /// One song per row: title and artist on the left, key on the right.
 class _SongRow extends StatelessWidget {
-  const _SongRow({required this.song});
+  const _SongRow({required this.song, this.match});
 
   final Song song;
+  final LyricMatch? match;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +236,10 @@ class _SongRow extends StatelessWidget {
                         ),
                   ),
                 ],
+                if (match != null) ...[
+                  const SizedBox(height: 6),
+                  _LyricSnippet(match!, maxLines: 2),
+                ],
               ],
             ),
           ),
@@ -164,9 +256,13 @@ class _SongRow extends StatelessWidget {
 /// song carries flagged beside it; title and artist follow, and tempo and
 /// time signature close the block when the song has them.
 class _SongBlock extends StatelessWidget {
-  const _SongBlock({required this.song});
+  const _SongBlock({required this.song, this.match});
 
   final Song song;
+
+  /// When set, the matching lyric takes the place of tempo and time
+  /// signature, and the title keeps to one line to make room.
+  final LyricMatch? match;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +311,7 @@ class _SongBlock extends StatelessWidget {
           const Spacer(),
           Text(
             song.title,
-            maxLines: 2,
+            maxLines: match == null ? 2 : 1,
             overflow: TextOverflow.ellipsis,
             style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.2),
           ),
@@ -228,7 +324,10 @@ class _SongBlock extends StatelessWidget {
               style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
             ),
           ],
-          if (meta.isNotEmpty) ...[
+          if (match != null) ...[
+            const SizedBox(height: 6),
+            _LyricSnippet(match!, maxLines: 2),
+          ] else if (meta.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               meta,
