@@ -1,0 +1,9 @@
+# Copy to android/key.properties (never commit it) and fill in.
+# The key itself is created once with keytool (comes with Android Studio):
+#   keytool -genkey -v -keystore arca-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias arca
+# Keep the .jks and these passwords safe: without them, new versions of the
+# APK cannot be installed over the old one.
+storeFile=../../arca-release.jks
+storePassword=
+keyAlias=arca
+keyPassword=
