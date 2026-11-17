@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/external_link.dart';
 import '../../core/format/date_format.dart';
 import '../../core/theme/arca_tokens.dart';
 import '../../core/widgets/arca_card.dart';
 import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/key_badge.dart';
+import '../annexes/annex.dart';
+import '../auth/auth_provider.dart';
 import '../home/pinned_setlists_provider.dart';
 import '../songs/song.dart';
 import '../songs/song_detail_screen.dart';
@@ -13,7 +17,10 @@ import '../songs/song_list_provider.dart';
 import 'add_song_to_setlist_screen.dart';
 import 'setlist.dart';
 import 'setlist_list_provider.dart';
+import 'setlist_share.dart';
 import 'stage_screen.dart';
+
+enum _ShareAction { whatsApp, copy }
 
 class SetlistDetailScreen extends ConsumerStatefulWidget {
   const SetlistDetailScreen({super.key, required this.setlistId});
@@ -86,6 +93,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         serviceDate: setlist.serviceDate,
         name: setlist.name,
         songs: songs,
+        annexId: setlist.annexId,
       );
     });
 
@@ -195,6 +203,30 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     }
   }
 
+  /// The message, with the annex name when the user is in that annex.
+  String _shareText(Setlist setlist) {
+    final annexes = ref.read(authProvider).user?.annexes ?? const <Annex>[];
+    final annex = annexes.where((a) => a.id == setlist.annexId).firstOrNull;
+    return setlistShareText(setlist, annexName: annex?.name);
+  }
+
+  Future<void> _shareOnWhatsApp(Setlist setlist) async {
+    final opened = await ref.read(openExternalProvider)(whatsAppUri(_shareText(setlist)));
+    if (opened || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('No se pudo abrir WhatsApp. Podés copiar el texto y pegarlo.'),
+        action: SnackBarAction(label: 'Copiar', onPressed: () => _copyText(setlist)),
+      ),
+    );
+  }
+
+  Future<void> _copyText(Setlist setlist) async {
+    await Clipboard.setData(ClipboardData(text: _shareText(setlist)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Setlist copiado')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final setlist = _setlist;
@@ -209,6 +241,33 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         actions: [
+          if (setlist != null && setlist.songs.isNotEmpty)
+            PopupMenuButton<_ShareAction>(
+              tooltip: 'Compartir',
+              icon: const Icon(Icons.share_outlined),
+              onSelected: (action) => switch (action) {
+                _ShareAction.whatsApp => _shareOnWhatsApp(setlist),
+                _ShareAction.copy => _copyText(setlist),
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: _ShareAction.whatsApp,
+                  child: ListTile(
+                    leading: Icon(Icons.chat_outlined),
+                    title: Text('Enviar por WhatsApp'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _ShareAction.copy,
+                  child: ListTile(
+                    leading: Icon(Icons.copy_outlined),
+                    title: Text('Copiar texto'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
           if (setlist != null)
             IconButton(
               tooltip: 'Eliminar setlist',
