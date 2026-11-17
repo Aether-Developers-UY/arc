@@ -56,6 +56,16 @@ class FirstUsersSeederTest extends TestCase
         $this->seed(FirstUsersSeeder::class);
     }
 
+    public function test_the_default_seed_creates_only_the_first_users(): void
+    {
+        $this->seed();
+
+        $this->assertEqualsCanonicalizing(
+            ['admin@arca.local', 'estandar1@arca.local', 'estandar2@arca.local'],
+            User::pluck('email')->all(),
+        );
+    }
+
     public function test_the_admin_can_sign_in_with_it(): void
     {
         $this->seed(FirstUsersSeeder::class);

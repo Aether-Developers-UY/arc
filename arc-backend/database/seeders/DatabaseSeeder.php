@@ -2,27 +2,16 @@
 
 namespace Database\Seeders;
 
-use App\Models\Annex;
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * A fresh install starts with the first users only (their passwords
+     * come from .env); no test accounts.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        $user = User::factory()->admin()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        $user->annexes()->attach(Annex::firstOrCreate(['name' => 'Anexo principal']));
+        $this->call(FirstUsersSeeder::class);
     }
 }
