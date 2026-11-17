@@ -37,12 +37,24 @@ class SetlistRepository {
 
   Future<void> delete(int id) => _apiClient.dio.delete('/setlists/$id');
 
-  Future<SetlistSong> addSong({required int setlistId, required int songId, String? key}) async {
+  Future<SetlistSong> addSong({
+    required int setlistId,
+    required int songId,
+    String? key,
+    SetlistSection? section,
+  }) async {
     final response = await _apiClient.dio.post('/setlists/$setlistId/songs', data: {
       'song_id': songId,
       if (key != null) 'key': key,
+      if (section != null) 'section': section.apiValue,
     });
     return SetlistSong.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
+  /// Fills the line block with a copy of [lineId]'s songs, replacing it.
+  Future<Setlist> useLine({required int setlistId, required int lineId}) async {
+    final response = await _apiClient.dio.put('/setlists/$setlistId/line', data: {'line_id': lineId});
+    return Setlist.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   Future<void> updateSongKey({

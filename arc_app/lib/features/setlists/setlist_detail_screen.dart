@@ -11,6 +11,8 @@ import '../../core/widgets/key_badge.dart';
 import '../annexes/annex.dart';
 import '../auth/auth_provider.dart';
 import '../home/pinned_setlists_provider.dart';
+import '../lines/line.dart';
+import '../lines/line_picker_screen.dart';
 import '../songs/song.dart';
 import '../songs/song_detail_screen.dart';
 import '../songs/song_list_provider.dart';
@@ -21,6 +23,14 @@ import 'setlist_share.dart';
 import 'stage_screen.dart';
 
 enum _ShareAction { whatsApp, copy }
+
+/// The songs of one block of the service; [section] null is «Otras
+/// canciones», for songs added before the blocks existed.
+class _Block {
+  const _Block(this.section, this.songs);
+  final SetlistSection? section;
+  final List<SetlistSong> songs;
+}
 
 class SetlistDetailScreen extends ConsumerStatefulWidget {
   const SetlistDetailScreen({super.key, required this.setlistId});
@@ -76,14 +86,30 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     }
   }
 
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
+  /// The blocks to show: the four of the service always, plus «Otras
+  /// canciones» for songs added before the blocks existed.
+  List<_Block> _blocksOf(Setlist setlist) => [
+        for (final section in SetlistSection.values)
+          _Block(section, [for (final s in setlist.songs) if (s.section == section) s]),
+        if (setlist.songs.any((s) => s.section == null))
+          _Block(null, [for (final s in setlist.songs) if (s.section == null) s]),
+      ];
+
+  /// A drag inside [block]: the other blocks keep their songs and order.
+  Future<void> _onReorderInBlock(_Block block, int oldIndex, int newIndex) async {
     final setlist = _setlist;
     if (setlist == null || _isMutating) return;
-
-    final songs = List<SetlistSong>.from(setlist.songs);
+    final moved = List<SetlistSong>.from(block.songs);
     if (newIndex > oldIndex) newIndex -= 1;
-    final moved = songs.removeAt(oldIndex);
-    songs.insert(newIndex, moved);
+    moved.insert(newIndex, moved.removeAt(oldIndex));
+    await _onReorder([
+      for (final b in _blocksOf(setlist)) ...(b.section == block.section ? moved : b.songs),
+    ]);
+  }
+
+  Future<void> _onReorder(List<SetlistSong> songs) async {
+    final setlist = _setlist;
+    if (setlist == null || _isMutating) return;
 
     // Optimistic: reorder locally immediately, persist in background.
     setState(() {
@@ -133,13 +159,195 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     }
   }
 
-  Future<void> _openAddSong() async {
+  Future<void> _openAddSong(SetlistSection section) async {
     final setlist = _setlist;
     if (setlist == null || _isMutating) return;
     final added = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => AddSongToSetlistScreen(setlistId: setlist.id)),
+      MaterialPageRoute(
+        builder: (_) => AddSongToSetlistScreen(setlistId: setlist.id, section: section),
+      ),
     );
     if (added == true) await _reloadSilently();
+  }
+
+  /// Picks a line from the library and puts its songs in the line block,
+  /// after asking when that replaces songs already there.
+  Future<void> _chooseLine(_Block block) async {
+    final setlist = _setlist;
+    if (setlist == null || _isMutating) return;
+    final line = await Navigator.of(context).push<Line>(
+      MaterialPageRoute(builder: (_) => const LinePickerScreen()),
+    );
+    if (line == null || !mounted) return;
+
+    if (block.songs.isNotEmpty) {
+      final replace = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('¿Reemplazar la línea?'),
+          content: Text('Las canciones del bloque Línea se cambian por las de «${line.name}».'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Reemplazar'),
+            ),
+          ],
+        ),
+      );
+      if (replace != true || !mounted) return;
+    }
+
+    setState(() => _isMutating = true);
+    try {
+      final updated = await ref.read(setlistRepositoryProvider).useLine(
+            setlistId: setlist.id,
+            lineId: line.id,
+          );
+      if (mounted) setState(() => _setlist = updated);
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = 'No se pudo agregar la línea.');
+      await _reloadSilently();
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
+    }
+  }
+
+  Widget _buildBlock(BuildContext context, Setlist setlist, _Block block) {
+    final text = Theme.of(context).textTheme;
+    final section = block.section;
+    final lineName = block.songs.map((s) => s.lineName).nonNulls.firstOrNull;
+    final label = section == null
+        ? 'Otras canciones'
+        : section == SetlistSection.linea && lineName != null
+            ? 'Línea · $lineName'
+            : section.label;
+    final empty = switch (section) {
+      SetlistSection.inicio => 'Sin canción de inicio',
+      SetlistSection.linea => 'Elegí una línea o agregá canciones sueltas.',
+      SetlistSection.ofrenda => 'Sin canción de ofrenda',
+      SetlistSection.santaCena => 'Sin santa cena',
+      null => '',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              if (section == SetlistSection.linea)
+                TextButton.icon(
+                  onPressed: _isMutating ? null : () => _chooseLine(block),
+                  icon: const Icon(Icons.playlist_play),
+                  label: Text(block.songs.isEmpty ? 'Elegir línea' : 'Cambiar línea'),
+                ),
+              if (section != null)
+                IconButton(
+                  tooltip: 'Agregar a ${section.label}',
+                  icon: const Icon(Icons.add),
+                  onPressed: _isMutating ? null : () => _openAddSong(section),
+                ),
+            ],
+          ),
+          if (block.songs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(empty, style: text.bodyMedium?.copyWith(color: context.arca.textSecondary)),
+            )
+          else
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: block.songs.length,
+              onReorder: (oldIndex, newIndex) => _onReorderInBlock(block, oldIndex, newIndex),
+              // Our own handle at the far left; the default one sits on the
+              // right, over "Quitar".
+              buildDefaultDragHandles: false,
+              itemBuilder: (context, index) {
+                final setlistSong = block.songs[index];
+                return Padding(
+                  key: ValueKey(setlistSong.id),
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _songCard(context, setlistSong, index, setlist.songs.indexOf(setlistSong) + 1),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _songCard(BuildContext context, SetlistSong setlistSong, int indexInBlock, int number) {
+    final text = Theme.of(context).textTheme;
+    return ArcaCard(
+      onTap: () => _openSong(setlistSong),
+      padding: const EdgeInsets.fromLTRB(4, 12, 8, 12),
+      child: Row(
+        children: [
+          ReorderableDragStartListener(
+            index: indexInBlock,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.grab,
+              child: Tooltip(
+                message: 'Arrastrar para reordenar',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Icon(Icons.drag_indicator, color: context.arca.textSecondary),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(setlistSong.songTitle, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                if (setlistSong.songArtist?.isNotEmpty == true)
+                  Text(
+                    setlistSong.songArtist!,
+                    style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          KeyBadge(setlistSong.key),
+          IconButton(
+            tooltip: 'Quitar del setlist',
+            icon: const Icon(Icons.close),
+            onPressed: _isMutating ? null : () => _removeSong(setlistSong),
+          ),
+        ],
+      ),
+    );
   }
 
   /// A setlist entry only carries title/artist/key for display in this
@@ -320,119 +528,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                           ),
                         ),
                       Expanded(
-                        child: setlist.songs.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.queue_music_outlined,
-                                        size: 40, color: context.arca.textSecondary),
-                                    const SizedBox(height: 12),
-                                    Text('Este setlist está vacío', style: text.titleMedium),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Agregá canciones con «Agregar canción».',
-                                      style: text.bodyMedium
-                                          ?.copyWith(color: context.arca.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ReorderableListView.builder(
-                                padding: const EdgeInsets.only(bottom: 96),
-                                itemCount: setlist.songs.length,
-                                onReorder: _onReorder,
-                                // Our own handle at the far left; the default
-                                // one sits on the right, over "Quitar".
-                                buildDefaultDragHandles: false,
-                                itemBuilder: (context, index) {
-                                  final setlistSong = setlist.songs[index];
-                                  return Padding(
-                                    key: ValueKey(setlistSong.id),
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: ArcaCard(
-                                      onTap: () => _openSong(setlistSong),
-                                      padding: const EdgeInsets.fromLTRB(4, 12, 8, 12),
-                                      child: Row(
-                                        children: [
-                                          ReorderableDragStartListener(
-                                            index: index,
-                                            child: MouseRegion(
-                                              cursor: SystemMouseCursors.grab,
-                                              child: Tooltip(
-                                                message: 'Arrastrar para reordenar',
-                                                child: Padding(
-                                                  padding: const EdgeInsets.symmetric(
-                                                      horizontal: 8, vertical: 8),
-                                                  child: Icon(
-                                                    Icons.drag_indicator,
-                                                    color: context.arca.textSecondary,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          CircleAvatar(
-                                            radius: 16,
-                                            backgroundColor: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withValues(alpha: 0.14),
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                color: Theme.of(context).colorScheme.primary,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  setlistSong.songTitle,
-                                                  style: text.titleMedium
-                                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                                ),
-                                                if (setlistSong.songArtist?.isNotEmpty == true)
-                                                  Text(
-                                                    setlistSong.songArtist!,
-                                                    style: text.bodyMedium?.copyWith(
-                                                      color: context.arca.textSecondary,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          KeyBadge(setlistSong.key),
-                                          IconButton(
-                                            tooltip: 'Quitar del setlist',
-                                            icon: const Icon(Icons.close),
-                                            onPressed: _isMutating
-                                                ? null
-                                                : () => _removeSong(setlistSong),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                        child: ListView(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          children: [
+                            for (final block in _blocksOf(setlist)) _buildBlock(context, setlist, block),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-      floatingActionButton: setlist == null
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: _openAddSong,
-              icon: const Icon(Icons.add),
-              label: const Text('Agregar canción'),
-            ),
     );
   }
 }

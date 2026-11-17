@@ -7,15 +7,19 @@ import '../../core/widgets/content_frame.dart';
 import '../../core/widgets/key_badge.dart';
 import '../songs/song.dart';
 import '../songs/song_list_provider.dart';
+import 'setlist.dart';
 import 'setlist_list_provider.dart';
 
 /// A song picker that adds the chosen song to [setlistId] and pops with
 /// `true` on success (so the caller knows to refresh), or pops with `false`/
 /// nothing if the user backs out.
 class AddSongToSetlistScreen extends ConsumerStatefulWidget {
-  const AddSongToSetlistScreen({super.key, required this.setlistId});
+  const AddSongToSetlistScreen({super.key, required this.setlistId, required this.section});
 
   final int setlistId;
+
+  /// The block of the service the song goes into.
+  final SetlistSection section;
 
   @override
   ConsumerState<AddSongToSetlistScreen> createState() => _AddSongToSetlistScreenState();
@@ -34,6 +38,7 @@ class _AddSongToSetlistScreenState extends ConsumerState<AddSongToSetlistScreen>
       await ref.read(setlistRepositoryProvider).addSong(
             setlistId: widget.setlistId,
             songId: song.id,
+            section: widget.section,
           );
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
@@ -48,7 +53,7 @@ class _AddSongToSetlistScreenState extends ConsumerState<AddSongToSetlistScreen>
     final songsAsync = ref.watch(songListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Agregar canción')),
+      appBar: AppBar(title: Text('Agregar a ${widget.section.label}')),
       body: ContentFrame(
         maxWidth: 720,
         child: Column(

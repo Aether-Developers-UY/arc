@@ -22,7 +22,7 @@ class SetlistController extends Controller
 
         $setlists = Setlist::query()
             ->whereIn('annex_id', $annexIds)
-            ->with('setlistSongs.song')
+            ->with(Setlist::SONGS_WITH)
             ->orderBy('service_date')
             ->get();
 
@@ -43,7 +43,7 @@ class SetlistController extends Controller
     public function show(Setlist $setlist)
     {
         $this->authorize('view', $setlist);
-        $setlist->load('setlistSongs.song');
+        $setlist->load(Setlist::SONGS_WITH);
 
         return response()->json(['data' => $setlist]);
     }

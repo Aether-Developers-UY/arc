@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AnnexController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\LineController;
 use App\Http\Controllers\Api\SetlistController;
 use App\Http\Controllers\Api\SetlistSongController;
 use App\Http\Controllers\Api\SongController;
@@ -25,6 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/setlists/{setlist}/songs/{setlistSong}', [SetlistSongController::class, 'update'])->scopeBindings();
     Route::delete('/setlists/{setlist}/songs/{setlistSong}', [SetlistSongController::class, 'destroy'])->scopeBindings();
     Route::put('/setlists/{setlist}/reorder', [SetlistSongController::class, 'reorder']);
+    Route::put('/setlists/{setlist}/line', [SetlistSongController::class, 'useLine']);
+    Route::apiResource('lines', LineController::class);
 
     Route::get('/annexes', [AnnexController::class, 'index']);
     Route::post('/annexes/{annex}/join', [AnnexController::class, 'join']);

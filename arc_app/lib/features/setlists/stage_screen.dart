@@ -143,7 +143,7 @@ class _StageScreenState extends ConsumerState<StageScreen> {
                             style: text.titleLarge,
                           ),
                           Text(
-                            'Tonalidad ${current.key}',
+                            [?current.section?.label, 'Tonalidad ${current.key}'].join(' · '),
                             style: text.bodyMedium?.copyWith(color: context.arca.textSecondary),
                           ),
                         ],

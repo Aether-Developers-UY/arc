@@ -51,6 +51,44 @@ void main() {
     );
   });
 
+  test('a setlist with blocks groups the songs under each block, numbered through', () {
+    SetlistSong s(int i, String title, String key, SetlistSection? section, {String? line}) => SetlistSong(
+          id: i, songId: i, position: i, key: key, songTitle: title, songArtist: null,
+          section: section, lineName: line,
+        );
+    final setlist = Setlist(
+      id: 1,
+      serviceDate: DateTime(2026, 11, 22),
+      name: 'Culto',
+      songs: [
+        s(1, 'Abre mis ojos', 'G', SetlistSection.inicio),
+        s(2, 'Poderoso', 'A', SetlistSection.linea, line: 'Alabanza'),
+        s(3, 'Santo Espíritu', 'D', SetlistSection.linea, line: 'Alabanza'),
+        s(4, 'Todo lo que soy', 'E', SetlistSection.ofrenda),
+        s(5, 'Sublime Gracia', 'G', null),
+      ],
+    );
+
+    expect(
+      setlistShareText(setlist),
+      '*Culto*\n'
+      'Domingo 22/11/2026\n'
+      '\n'
+      '*Inicio*\n'
+      '1. Abre mis ojos — *G*\n'
+      '\n'
+      '*Línea · Alabanza*\n'
+      '2. Poderoso — *A*\n'
+      '3. Santo Espíritu — *D*\n'
+      '\n'
+      '*Ofrenda*\n'
+      '4. Todo lo que soy — *E*\n'
+      '\n'
+      '*Otras canciones*\n'
+      '5. Sublime Gracia — *G*',
+    );
+  });
+
   test('the WhatsApp link carries the whole text', () {
     final text = setlistShareText(_setlist(name: 'Culto'));
     final uri = whatsAppUri(text);

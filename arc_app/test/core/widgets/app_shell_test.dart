@@ -6,6 +6,7 @@ import 'package:arc_app/features/annexes/annex_repository.dart';
 import 'package:arc_app/features/annexes/my_annexes_screen.dart';
 import 'package:arc_app/features/auth/auth_provider.dart';
 import 'package:arc_app/features/auth/auth_repository.dart';
+import 'package:arc_app/features/lines/line_repository.dart';
 import 'package:arc_app/features/setlists/setlist_list_provider.dart';
 import 'package:arc_app/features/songs/song.dart';
 import 'package:arc_app/features/songs/song_list_provider.dart';
@@ -17,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/admin/admin_screen_test.dart' show FakeAdminRepository;
 import '../../features/annexes/my_annexes_screen_test.dart' show FakeAnnexRepository;
 import '../../features/home/home_test_helpers.dart';
+import '../../features/lines/line_library_test.dart' show MemoryLines;
 
 class _LoggedInAuth extends AuthNotifier {
   _LoggedInAuth({this.role = 'standard'});
@@ -64,6 +66,7 @@ Future<FakeSetlistRepository> pumpShell(
         setlistRepositoryProvider.overrideWithValue(repository),
         annexRepositoryProvider.overrideWithValue(FakeAnnexRepository([testAnnex], {testAnnex.id})),
         adminRepositoryProvider.overrideWithValue(FakeAdminRepository()),
+        lineRepositoryProvider.overrideWithValue(MemoryLines([])),
       ],
       child: MaterialApp(theme: ArcaTheme.light(), home: const AppShell()),
     ),
@@ -119,6 +122,23 @@ void main() {
 
       final container = ProviderScope.containerOf(tester.element(find.byType(AppShell)));
       expect(container.read(themeModeProvider), ThemeMode.dark);
+    });
+  }
+
+  for (final (label, size) in [('desktop', const Size(1200, 900)), ('phone', const Size(390, 844))]) {
+    testWidgets('the Líneas tab opens the line library, between Canciones and Setlists ($label)', (tester) async {
+      await pumpShell(tester, size: size);
+
+      final canciones = tester.getCenter(find.text('Canciones'));
+      final lineas = tester.getCenter(find.text('Líneas'));
+      final setlists = tester.getCenter(find.text('Setlists'));
+      expect(lineas.dx + lineas.dy, greaterThan(canciones.dx + canciones.dy));
+      expect(lineas.dx + lineas.dy, lessThan(setlists.dx + setlists.dy));
+
+      await tester.tap(find.text('Líneas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Canciones enganchadas, listas para el culto'), findsOneWidget);
     });
   }
 

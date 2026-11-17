@@ -7,6 +7,7 @@ import '../../features/annexes/my_annexes_screen.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/setlist_detail_provider.dart';
+import '../../features/lines/line_library_screen.dart';
 import '../../features/setlists/setlist_list_screen.dart';
 import '../../features/songs/song_list_screen.dart';
 import '../layout.dart';
@@ -24,6 +25,7 @@ class _Destination {
 const _destinations = [
   _Destination('Inicio', Icons.home_outlined, Icons.home),
   _Destination('Canciones', Icons.library_music_outlined, Icons.library_music),
+  _Destination('Líneas', Icons.queue_music_outlined, Icons.queue_music),
   _Destination('Setlists', Icons.event_note_outlined, Icons.event_note),
 ];
 
@@ -64,10 +66,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       children: [
         HomeScreen(
           onOpenSongs: () => _select(1),
-          onOpenSetlists: () => _select(2),
+          onOpenSetlists: () => _select(3),
           onChooseAnnexes: _manageAnnexes,
         ),
         const SongListScreen(),
+        const LineLibraryScreen(),
         SetlistListScreen(onChooseAnnexes: _manageAnnexes),
         if (isAdmin) const AdminScreen(),
       ],

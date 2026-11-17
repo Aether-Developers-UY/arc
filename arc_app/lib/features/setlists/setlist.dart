@@ -1,3 +1,19 @@
+/// The blocks of a service, in the order they are played.
+enum SetlistSection {
+  inicio('inicio', 'Inicio'),
+  linea('linea', 'Línea'),
+  ofrenda('ofrenda', 'Ofrenda'),
+  santaCena('santa_cena', 'Santa cena');
+
+  const SetlistSection(this.apiValue, this.label);
+
+  final String apiValue;
+  final String label;
+
+  static SetlistSection? fromApi(String? value) =>
+      values.where((s) => s.apiValue == value).firstOrNull;
+}
+
 class SetlistSong {
   SetlistSong({
     required this.id,
@@ -6,6 +22,8 @@ class SetlistSong {
     required this.key,
     required this.songTitle,
     required this.songArtist,
+    this.section,
+    this.lineName,
   });
 
   factory SetlistSong.fromJson(Map<String, dynamic> json) => SetlistSong(
@@ -15,6 +33,8 @@ class SetlistSong {
         key: json['key'] as String,
         songTitle: (json['song'] as Map<String, dynamic>?)?['title'] as String? ?? '',
         songArtist: (json['song'] as Map<String, dynamic>?)?['artist'] as String?,
+        section: SetlistSection.fromApi(json['section'] as String?),
+        lineName: (json['line'] as Map<String, dynamic>?)?['name'] as String?,
       );
 
   final int id;
@@ -23,6 +43,12 @@ class SetlistSong {
   final String key;
   final String songTitle;
   final String? songArtist;
+
+  /// Its block in the service; null for songs added before the blocks.
+  final SetlistSection? section;
+
+  /// The line it was brought in with, if any (and the line still exists).
+  final String? lineName;
 }
 
 class Setlist {

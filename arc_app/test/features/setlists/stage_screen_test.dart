@@ -54,6 +54,7 @@ Future<void> openStage(
   WidgetTester tester, {
   Size size = const Size(390, 844),
   Map<String, Object> stored = const {},
+  Setlist? of,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -72,7 +73,7 @@ Future<void> openStage(
           builder: (context) => Scaffold(
             body: TextButton(
               onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => StageScreen(setlist: setlist)),
+                MaterialPageRoute<void>(builder: (_) => StageScreen(setlist: of ?? setlist)),
               ),
               child: const Text('Abrir'),
             ),
@@ -100,6 +101,20 @@ void main() {
     expect(find.text('Sublime Gracia'), findsOneWidget);
     expect(find.text('Tonalidad G'), findsOneWidget);
     expect(find.text('Letra de la canción 1'), findsOneWidget);
+  });
+
+  testWidgets('the block of the service shows next to the key', (tester) async {
+    SetlistSong s(int i, String title, SetlistSection section) =>
+        SetlistSong(id: i, songId: i, position: i, key: 'G', songTitle: title, songArtist: null, section: section);
+    await openStage(tester, of: Setlist(id: 9, serviceDate: DateTime(2026, 11, 22), name: null, songs: [
+      s(1, 'Abre mis ojos', SetlistSection.inicio),
+      s(2, 'Poderoso', SetlistSection.linea),
+    ]));
+
+    expect(find.text('Inicio · Tonalidad G'), findsOneWidget);
+    await tester.tap(find.byTooltip('Canción siguiente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Línea · Tonalidad G'), findsOneWidget);
   });
 
   testWidgets('next and previous move through the setlist, transposing each song', (tester) async {

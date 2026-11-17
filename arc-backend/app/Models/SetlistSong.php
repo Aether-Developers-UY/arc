@@ -10,11 +10,17 @@ class SetlistSong extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['setlist_id', 'song_id', 'position', 'key'];
+    protected $fillable = ['setlist_id', 'song_id', 'position', 'key', 'section', 'line_id'];
 
     public function setlist(): BelongsTo
     {
         return $this->belongsTo(Setlist::class);
+    }
+
+    /** The line it came from, when it was brought in with one. */
+    public function line(): BelongsTo
+    {
+        return $this->belongsTo(Line::class);
     }
 
     public function song(): BelongsTo

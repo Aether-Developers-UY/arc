@@ -16,14 +16,30 @@ String setlistShareText(Setlist setlist, {String? annexName}) {
       ? ['*$name*', [date, if (annex.isNotEmpty) annex].join(' · ')]
       : ['*$date*', if (annex.isNotEmpty) annex];
 
-  final songs = [
-    for (final (i, s) in setlist.songs.indexed)
-      '${i + 1}. ${s.songTitle}'
-          '${s.songArtist?.trim().isNotEmpty == true ? ' (${s.songArtist!.trim()})' : ''}'
-          ' — *${s.key}*',
-  ];
+  String songLine(SetlistSong s) => '${setlist.songs.indexOf(s) + 1}. ${s.songTitle}'
+      '${s.songArtist?.trim().isNotEmpty == true ? ' (${s.songArtist!.trim()})' : ''}'
+      ' — *${s.key}*';
 
-  return [...header, '', ...songs].join('\n');
+  // A setlist from before the blocks is just its list of songs.
+  if (setlist.songs.every((s) => s.section == null)) {
+    return [...header, '', ...setlist.songs.map(songLine)].join('\n');
+  }
+
+  // Otherwise, each block that has songs under its own heading.
+  final blocks = <String>[];
+  for (final section in [...SetlistSection.values, null]) {
+    final songs = setlist.songs.where((s) => s.section == section).toList();
+    if (songs.isEmpty) continue;
+    final lineName = songs.map((s) => s.lineName).nonNulls.firstOrNull;
+    final title = switch (section) {
+      null => 'Otras canciones',
+      SetlistSection.linea when lineName != null => 'Línea · $lineName',
+      _ => section.label,
+    };
+    blocks.add(['*$title*', ...songs.map(songLine)].join('\n'));
+  }
+
+  return [...header, '', blocks.join('\n\n')].join('\n');
 }
 
 /// Opens WhatsApp (app or web) with [text] ready to send to any chat.
