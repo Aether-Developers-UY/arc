@@ -32,9 +32,14 @@ final _songs = [
 class SearchingRepository implements SongRepository {
   final searches = <String?>[];
 
+  /// Searches that take this long to answer, to test out-of-order replies.
+  final slow = <String, Duration>{};
+
   @override
   Future<List<Song>> list({String? search}) async {
     searches.add(search);
+    final delay = slow[search];
+    if (delay != null) await Future<void>.delayed(delay);
     if (search == null || search.isEmpty) return _songs;
     return [
       for (final s in _songs)
@@ -148,6 +153,122 @@ void main() {
     expect(find.text('Sublime Gracia'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
     expect(find.byTooltip('Limpiar búsqueda'), findsNothing);
+  });
+
+  testWidgets('pulling to refresh keeps the current search', (tester) async {
+    await pumpSearch(tester);
+    await search(tester, 'newton');
+
+    await tester.fling(find.text('Sublime Gracia'), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(repository.searches.last, 'newton');
+    expect(find.text('Cuán Grande Es Él'), findsNothing);
+  });
+
+  group('while typing', () {
+    /// Types without pressing Enter.
+    Future<void> type(WidgetTester tester, String text) => tester.enterText(find.byType(TextField), text);
+
+    testWidgets('the list filters after a short pause, no Enter needed', (tester) async {
+      await pumpSearch(tester);
+
+      await type(tester, 'al contemplar');
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cuán Grande Es Él'), findsOneWidget);
+      expect(find.text('Sublime Gracia'), findsNothing);
+      expect(snippetText(tester), contains('al contemplar'));
+    });
+
+    testWidgets('it waits for the pause instead of searching every letter', (tester) async {
+      await pumpSearch(tester);
+
+      await type(tester, 'a');
+      await tester.pump(const Duration(milliseconds: 100));
+      await type(tester, 'al');
+      await tester.pump(const Duration(milliseconds: 100));
+      await type(tester, 'al contemplar');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(repository.searches, [null]);
+
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+      expect(repository.searches, [null, 'al contemplar']);
+    });
+
+    testWidgets('Enter searches right away, without a second search after the pause', (tester) async {
+      await pumpSearch(tester);
+
+      await type(tester, 'newton');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      await tester.pump(searchPause * 2);
+      await tester.pumpAndSettle();
+
+      expect(repository.searches, [null, 'newton']);
+      expect(find.text('Sublime Gracia'), findsOneWidget);
+    });
+
+    testWidgets('erasing the text brings every song back', (tester) async {
+      await pumpSearch(tester);
+      await type(tester, 'newton');
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+      expect(find.text('Cuán Grande Es Él'), findsNothing);
+
+      await type(tester, '');
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cuán Grande Es Él'), findsOneWidget);
+      expect(find.text('Sublime Gracia'), findsOneWidget);
+    });
+
+    testWidgets('spaces alone or the same search again do not search again', (tester) async {
+      await pumpSearch(tester);
+      await type(tester, 'newton');
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+
+      await type(tester, 'newton ');
+      await tester.pump(searchPause);
+      await tester.pumpAndSettle();
+
+      expect(repository.searches, [null, 'newton']);
+    });
+
+    testWidgets('the songs stay on screen while the next search loads', (tester) async {
+      await pumpSearch(tester);
+      repository.slow['newton'] = const Duration(seconds: 1);
+
+      await type(tester, 'newton');
+      await tester.pump(searchPause);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Cuán Grande Es Él'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.text('Cuán Grande Es Él'), findsNothing);
+    });
+
+    testWidgets('a slow older answer does not replace a newer one', (tester) async {
+      await pumpSearch(tester);
+      repository.slow['al'] = const Duration(seconds: 1); // matches both songs
+
+      await type(tester, 'al');
+      await tester.pump(searchPause);
+      await type(tester, 'al contemplar');
+      await tester.pump(searchPause);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2)); // the old answer arrives
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cuán Grande Es Él'), findsOneWidget);
+      expect(find.text('Sublime Gracia'), findsNothing);
+    });
   });
 
   testWidgets('a lyric match fits a phone-width block without overflow', (tester) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +19,9 @@ import 'song_list_provider.dart';
 
 const _viewModeKey = 'song_list_view';
 
+/// How long typing has to stop before the list filters.
+const searchPause = Duration(milliseconds: 350);
+
 class SongListScreen extends ConsumerStatefulWidget {
   const SongListScreen({super.key});
 
@@ -31,15 +36,27 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
   /// typed): it decides the lyric phrases and the no-results message.
   String _query = '';
 
+  /// Waits for typing to stop before searching.
+  Timer? _pause;
+
   @override
   void dispose() {
+    _pause?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
+  void _typed(String value) {
+    _pause?.cancel();
+    _pause = Timer(searchPause, () => _search(value));
+  }
+
   void _search(String value) {
-    setState(() => _query = value.trim());
-    ref.read(songListProvider.notifier).search(_query);
+    _pause?.cancel();
+    final query = value.trim();
+    if (query == _query) return;
+    setState(() => _query = query);
+    ref.read(songListProvider.notifier).search(query);
   }
 
   void _clearSearch() {
@@ -86,6 +103,7 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                             ),
                     ),
                     textInputAction: TextInputAction.search,
+                    onChanged: _typed,
                     onSubmitted: _search,
                   ),
                 ),
@@ -110,7 +128,8 @@ class _SongListScreenState extends ConsumerState<SongListScreen> {
                           message: 'Agregá la primera con «Nueva canción».',
                         )
                   : RefreshIndicator(
-                      onRefresh: () => ref.read(songListProvider.notifier).refresh(),
+                      // Keeps the current search, so the list still matches the box.
+                      onRefresh: () => ref.read(songListProvider.notifier).search(_query),
                       child: viewMode == ViewMode.grid
                           ? GridView.builder(
                               padding: const EdgeInsets.only(bottom: 24),
